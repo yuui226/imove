@@ -1,4 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">iMove</string>
+    <string name="connect_device">请连接存储设备</string>
+    <string name="transfer_today">传输今日</string>
+    <string name="transfer_three_days">传输近三日</string>
+    <string name="transfer_custom">自定义传输</string>
+    <string name="transfer_all">传输全部</string>
+    <string name="settings">设置</string>
+    <string name="grid_columns">网格列数</string>
+    <string name="language">语言</string>
+    <string name="dark_mode">深色模式</string>
+    <string name="target_directory">目标目录</string>
+    <string name="system_default">跟随系统</string>
+    <string name="chinese">中文</string>
+    <string name="english">English</string>
+    <string name="light">浅色</string>
+    <string name="dark">深色</string>
+    <string name="queue">队列</string>
+    <string name="clear">清空</string>
+    <string name="move">移动</string>
+    <string name="cancel">取消</string>
+    <string name="transfer_progress">正在传输照片</string>
+    <string name="transfer_complete">传输完成</string>
+    <string name="transfer_interrupted">传输中断</string>
 </resources>
