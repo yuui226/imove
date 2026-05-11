@@ -7,9 +7,6 @@ import android.os.Build
 import android.os.storage.StorageManager
 import android.provider.DocumentsContract
 import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -48,38 +45,5 @@ class StorageAccessManager @Inject constructor(
         val docId = DocumentsContract.getTreeDocumentId(uri) ?: return null
         // Format: "primary:", "uuid:", etc.
         return docId.substringBefore(':').takeIf { it != "primary" }
-    }
-
-    suspend fun listSourceDirectories(treeUri: Uri): List<String> = withContext(Dispatchers.IO) {
-        val directories = mutableListOf<String>()
-        val childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(
-            treeUri, DocumentsContract.getTreeDocumentId(treeUri)
-        )
-
-        context.contentResolver.query(
-            childrenUri,
-            arrayOf(
-                DocumentsContract.Document.COLUMN_DOCUMENT_ID,
-                DocumentsContract.Document.COLUMN_DISPLAY_NAME,
-                DocumentsContract.Document.COLUMN_MIME_TYPE
-            ),
-            null, null, null
-        )?.use { cursor ->
-            val idCol = cursor.getColumnIndex(DocumentsContract.Document.COLUMN_DOCUMENT_ID)
-            val nameCol = cursor.getColumnIndex(DocumentsContract.Document.COLUMN_DISPLAY_NAME)
-            val mimeCol = cursor.getColumnIndex(DocumentsContract.Document.COLUMN_MIME_TYPE)
-
-            while (cursor.moveToNext()) {
-                val mime = cursor.getString(mimeCol)
-                if (mime == DocumentsContract.Document.MIME_TYPE_DIR) {
-                    val docId = cursor.getString(idCol)
-                    val name = cursor.getString(nameCol)
-                    val dirUri = DocumentsContract.buildDocumentUriUsingTree(treeUri, docId)
-                    directories.add("$name|$dirUri")
-                }
-            }
-        }
-
-        directories
     }
 }

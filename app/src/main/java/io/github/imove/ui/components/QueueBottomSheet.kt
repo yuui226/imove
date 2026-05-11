@@ -12,7 +12,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import io.github.imove.R
 import io.github.imove.domain.model.TransferItem
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -29,7 +31,7 @@ fun QueueBottomSheet(
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                text = "传输队列 (${queue.size})",
+                text = stringResource(R.string.queue_title, queue.size),
                 style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier.padding(bottom = 12.dp)
             )

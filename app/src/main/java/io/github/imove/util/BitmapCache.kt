@@ -8,7 +8,6 @@ object BitmapCache {
 
     private fun calculateMaxSize(): Int {
         val maxMemory = Runtime.getRuntime().maxMemory()
-        // maxSize is in KB. Use 20% of max heap, leave rest for Coil + app
         return (maxMemory / 1024 * 0.20).toInt()
     }
 

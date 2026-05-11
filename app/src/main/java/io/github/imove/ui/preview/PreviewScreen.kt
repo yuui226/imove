@@ -116,7 +116,7 @@ fun PreviewScreen(
         },
         floatingActionButton = {
             FloatingActionButton(onClick = { viewModel.moveCurrentToQueue() }) {
-                Text("Move")
+                Text(stringResource(R.string.move))
             }
         }
     ) { padding ->

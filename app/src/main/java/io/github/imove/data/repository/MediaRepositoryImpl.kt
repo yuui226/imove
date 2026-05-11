@@ -28,13 +28,6 @@ class MediaRepositoryImpl @Inject constructor(
     override fun getFilesFromDevice(device: StorageDevice): Flow<List<MediaFile>> =
         scanDirectory(device.sourcePath, 0, 0)
 
-    override fun getFilesByDateRange(
-        device: StorageDevice,
-        startDate: Long,
-        endDate: Long
-    ): Flow<List<MediaFile>> =
-        scanDirectory(device.sourcePath, startDate, endDate)
-
     override suspend fun isFileTransferred(fileName: String, deviceId: String): Boolean {
         return transferredFileDao.exists(fileName, deviceId)
     }

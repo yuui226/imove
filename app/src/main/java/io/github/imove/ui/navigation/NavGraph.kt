@@ -70,15 +70,11 @@ fun NavGraph(navController: NavHostController, storageAccessManager: StorageAcce
         composable(
             route = Screen.Transfer.route,
             arguments = listOf(
-                navArgument("mode") { type = NavType.StringType },
-                navArgument("startDate") { type = NavType.LongType; defaultValue = 0L },
-                navArgument("endDate") { type = NavType.LongType; defaultValue = 0L }
+                navArgument("mode") { type = NavType.StringType }
             )
         ) { backStackEntry ->
             val viewModel: TransferViewModel = hiltViewModel()
             val mode = backStackEntry.arguments?.getString("mode") ?: "all"
-            val startDate = backStackEntry.arguments?.getLong("startDate") ?: 0L
-            val endDate = backStackEntry.arguments?.getLong("endDate") ?: 0L
 
             LaunchedEffect(mode) {
                 val displayMode = when (mode) {

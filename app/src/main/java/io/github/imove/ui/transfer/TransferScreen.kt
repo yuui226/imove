@@ -62,6 +62,8 @@ fun TransferScreen(
     val files by viewModel.displayFiles.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val queue by viewModel.queue.collectAsState()
+    val transferredIds by viewModel.transferredIds.collectAsState()
+    val queuedFileIds by viewModel.queuedFileIds.collectAsState()
 
     var showDone by remember { mutableStateOf(false) }
     var prevQueueSize by remember { mutableStateOf(queue.size) }
@@ -225,7 +227,8 @@ fun TransferScreen(
                                         val onLongClick = remember(file.id) { { onPreview(file.id) } }
                                         MediaThumbnail(
                                             file = file,
-                                            viewModel = viewModel,
+                                            transferredIds = transferredIds,
+                                            queuedFileIds = queuedFileIds,
                                             onClick = onClick,
                                             onLongClick = onLongClick
                                         )

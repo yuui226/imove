@@ -10,17 +10,12 @@
     <string name="grid_columns">网格列数</string>
     <string name="language">语言</string>
     <string name="dark_mode">深色模式</string>
-    <string name="target_directory">目标目录</string>
     <string name="system_default">系统</string>
     <string name="chinese">中文</string>
     <string name="english">EN</string>
     <string name="light">浅色</string>
     <string name="dark">深色</string>
-    <string name="queue">队列</string>
-    <string name="clear">清空</string>
     <string name="move">Move</string>
-    <string name="cancel">取消</string>
-    <string name="transfer_progress">正在传输照片</string>
     <string name="transfer_complete">传输完成</string>
     <string name="transfer_interrupted">传输中断</string>
     <string name="loading">加载中...</string>
@@ -45,4 +40,12 @@
     <string name="connected">已连接</string>
     <string name="select_photo_dir">请选择设备上的照片/视频目录</string>
     <string name="change_directory">更换目录</string>
+    <string name="queue_title">传输队列 (%d)</string>
+    <string name="copy_failed">复制失败: %1$s - %2$s</string>
+    <string name="error_no_target_dir">未设置目标目录</string>
+    <string name="error_invalid_target">目标目录无效</string>
+    <string name="error_cannot_write_target">无法写入目标目录</string>
+    <string name="error_create_file">无法创建文件: %s</string>
+    <string name="error_read_source">无法读取: %s</string>
+    <string name="error_write_dest">无法写入: %s</string>
 </resources>

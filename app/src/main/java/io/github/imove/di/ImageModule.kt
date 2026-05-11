@@ -27,7 +27,7 @@ object ImageModule {
             .dispatcher(Dispatchers.IO)
             .memoryCache {
                 MemoryCache.Builder(context)
-                    .maxSizePercent(0.7)
+                    .maxSizePercent(0.25)
                     .build()
             }
             .diskCache {

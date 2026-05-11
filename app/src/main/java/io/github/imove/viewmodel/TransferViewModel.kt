@@ -80,7 +80,7 @@ class TransferViewModel @Inject constructor(
         transferRepository.clearQueue()
     }
 
-    private var lastPreloadedIndex = 0
+    private var lastPreloadedIndex = -1
 
     fun preloadImages(fromIndex: Int, count: Int = 150) {
         val files = displayFiles.value

@@ -20,7 +20,4 @@ interface DeviceDao {
 
     @Query("UPDATE devices_table SET source_path = :path WHERE id = :deviceId")
     suspend fun updateSourcePath(deviceId: String, path: String)
-
-    @Query("UPDATE devices_table SET last_connected = :time WHERE id = :deviceId")
-    suspend fun updateLastConnected(deviceId: String, time: Long)
 }

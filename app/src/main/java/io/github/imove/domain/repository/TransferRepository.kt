@@ -12,4 +12,5 @@ interface TransferRepository {
     fun removeFromQueue(itemId: String)
     fun clearQueue()
     fun cancelTransfer()
+    fun clearTransferredIds()
 }

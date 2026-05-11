@@ -16,6 +16,7 @@ import io.github.imove.domain.repository.TransferRepository
 import io.github.imove.domain.repository.UserPreferencesRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,6 +27,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
+import io.github.imove.R
 import java.io.BufferedInputStream
 import java.io.BufferedOutputStream
 import java.util.UUID
@@ -36,7 +38,8 @@ import javax.inject.Singleton
 class TransferRepositoryImpl @Inject constructor(
     @ApplicationContext private val context: Context,
     private val mediaRepository: MediaRepository,
-    private val preferencesRepository: UserPreferencesRepository
+    private val preferencesRepository: UserPreferencesRepository,
+    private val usbDeviceManager: io.github.imove.data.usb.UsbDeviceManager
 ) : TransferRepository {
 
     companion object {
@@ -49,6 +52,7 @@ class TransferRepositoryImpl @Inject constructor(
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val mainHandler = Handler(Looper.getMainLooper())
     private val copySemaphore = Semaphore(20)
+    private val activeJobs = mutableMapOf<String, Job>()
 
     @Volatile private var cachedTargetUri: Uri? = null
     @Volatile private var cachedTreeDoc: DocumentFile? = null
@@ -69,9 +73,11 @@ class TransferRepositoryImpl @Inject constructor(
         }
         _queue.update { it + newItems }
         for (item in newItems) {
-            scope.launch {
+            val job = scope.launch {
                 copySemaphore.withPermit { copyFile(item) }
             }
+            job.invokeOnCompletion { activeJobs.remove(item.id) }
+            activeJobs[item.id] = job
         }
     }
 
@@ -79,12 +85,12 @@ class TransferRepositoryImpl @Inject constructor(
         cachedTreeDoc?.let { doc -> cachedTargetUri?.let { uri -> return Pair(uri, doc) } }
         val prefs = preferencesRepository.getPreferences().first()
         val targetDir = prefs.targetDirectory
-        if (targetDir.isBlank()) throw Exception("未设置目标目录")
+        if (targetDir.isBlank()) throw Exception(context.getString(R.string.error_no_target_dir))
         val uri = Uri.parse(targetDir)
-        if (uri.scheme != "content") throw Exception("目标目录无效: $targetDir")
+        if (uri.scheme != "content") throw Exception(context.getString(R.string.error_invalid_target))
         val doc = DocumentFile.fromTreeUri(context, uri)
-            ?: throw Exception("无法写入目标目录: $targetDir")
-        if (!doc.canWrite()) throw Exception("无法写入目标目录: $targetDir")
+            ?: throw Exception(context.getString(R.string.error_cannot_write_target))
+        if (!doc.canWrite()) throw Exception(context.getString(R.string.error_cannot_write_target))
         cachedTargetUri = uri
         cachedTreeDoc = doc
         return Pair(uri, doc)
@@ -99,14 +105,14 @@ class TransferRepositoryImpl @Inject constructor(
 
             val (_, treeDoc) = resolveTargetDir()
             val destFile = treeDoc.createFile(item.file.mimeType, fileName)
-                ?: throw Exception("无法创建文件: $fileName")
+                ?: throw Exception(context.getString(R.string.error_create_file, fileName))
             val destUri = destFile.uri
 
             val sourceUri = Uri.parse(item.file.path)
             val src = context.contentResolver.openInputStream(sourceUri)
-                ?: throw Exception("无法读取: ${item.file.path}")
+                ?: throw Exception(context.getString(R.string.error_read_source, item.file.path))
             val dst = context.contentResolver.openOutputStream(destUri)
-                ?: throw Exception("无法写入: $destUri")
+                ?: throw Exception(context.getString(R.string.error_write_dest, destUri.toString()))
 
             var bytes = 0L
             BufferedInputStream(src, BUFFER_SIZE).use { input ->
@@ -120,12 +126,13 @@ class TransferRepositoryImpl @Inject constructor(
                 }
             }
 
-            mediaRepository.markAsTransferred(item.file, "")
+            val deviceId = usbDeviceManager.connectedDevice.value?.id ?: ""
+            mediaRepository.markAsTransferred(item.file, deviceId)
             _transferredFileIds.update { it + item.file.id }
             _queue.update { list -> list.filter { it.id != item.id } }
         } catch (e: Exception) {
             Log.e(TAG, "Failed: $fileName", e)
-            toast("复制失败: $fileName - ${e.message}")
+            toast(context.getString(R.string.copy_failed, fileName, e.message ?: ""))
             _queue.update { list ->
                 list.map { if (it.id == item.id) it.copy(status = TransferStatus.FAILED) else it }
             }
@@ -144,6 +151,12 @@ class TransferRepositoryImpl @Inject constructor(
     }
 
     override fun cancelTransfer() {
+        activeJobs.values.forEach { it.cancel() }
+        activeJobs.clear()
         _queue.update { emptyList() }
+    }
+
+    override fun clearTransferredIds() {
+        _transferredFileIds.value = emptySet()
     }
 }

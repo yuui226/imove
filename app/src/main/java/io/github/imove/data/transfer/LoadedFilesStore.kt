@@ -47,20 +47,36 @@ class LoadedFilesStore @Inject constructor(
     @Volatile
     private var loaded = false
 
+    @Volatile
+    private var loadedDeviceId: String? = null
+
     fun isLoaded(): Boolean = loaded && _allFiles.value.isNotEmpty()
+
+    fun reset() {
+        loaded = false
+        loadedDeviceId = null
+        _allFiles.value = emptyList()
+    }
 
     fun setDisplayMode(mode: String) {
         _displayMode.value = mode
     }
 
     fun loadAllFiles(device: StorageDevice) {
+        if (device.id != loadedDeviceId) {
+            loaded = false
+            loadedDeviceId = null
+        }
         if (loaded || _isLoading.value) return
         _isLoading.value = true
         scope.launch {
             try {
                 mediaRepository.getFilesFromDevice(device).collect { files ->
                     _allFiles.value = files
-                    if (files.isNotEmpty()) loaded = true
+                    if (files.isNotEmpty()) {
+                        loaded = true
+                        loadedDeviceId = device.id
+                    }
                     Log.d("LoadedFilesStore", "Loaded ${files.size} files")
                 }
             } catch (e: Exception) {

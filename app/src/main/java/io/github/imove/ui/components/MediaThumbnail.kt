@@ -18,12 +18,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -37,19 +36,16 @@ import coil.compose.AsyncImage
 import coil.compose.AsyncImagePainter
 import io.github.imove.domain.model.MediaFile
 import io.github.imove.util.BitmapCache
-import io.github.imove.viewmodel.TransferViewModel
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MediaThumbnail(
     file: MediaFile,
-    viewModel: TransferViewModel,
+    transferredIds: Set<String>,
+    queuedFileIds: Set<String>,
     onClick: () -> Unit,
     onLongClick: (() -> Unit)? = null
 ) {
-    val transferredIds by viewModel.transferredIds.collectAsState()
-    val queuedFileIds by viewModel.queuedFileIds.collectAsState()
-
     val isTransferred = file.id in transferredIds
     val isQueued = file.id in queuedFileIds
 

@@ -9,6 +9,7 @@ import io.github.imove.data.usb.StorageAccessManager
 import io.github.imove.data.usb.UsbDeviceManager
 import io.github.imove.domain.model.StorageDevice
 import io.github.imove.domain.repository.DeviceRepository
+import io.github.imove.domain.repository.TransferRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,7 +22,8 @@ class HomeViewModel @Inject constructor(
     private val deviceRepository: DeviceRepository,
     private val usbDeviceManager: UsbDeviceManager,
     private val storageAccessManager: StorageAccessManager,
-    private val filesStore: LoadedFilesStore
+    private val filesStore: LoadedFilesStore,
+    private val transferRepository: TransferRepository
 ) : ViewModel() {
 
     val connectedDevice = usbDeviceManager.connectedDevice
@@ -37,9 +39,13 @@ class HomeViewModel @Inject constructor(
         // Restore saved sourcePath for any connected device (including already-connected on launch)
         viewModelScope.launch {
             usbDeviceManager.connectedDevice
-                .filterNotNull()
                 .collect { device ->
                     _isDetecting.value = false
+                    if (device == null) {
+                        filesStore.reset()
+                        transferRepository.clearTransferredIds()
+                        return@collect
+                    }
                     if (device.sourcePath.isEmpty()) {
                         _isRestoring.value = true
                         restoreSourcePath(device)
