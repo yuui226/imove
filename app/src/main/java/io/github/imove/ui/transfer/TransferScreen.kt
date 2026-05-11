@@ -5,8 +5,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -15,10 +17,6 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.DoneAll
-import androidx.compose.material3.Badge
-import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Button
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
@@ -27,8 +25,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.Text
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -39,15 +39,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import io.github.imove.R
 import io.github.imove.domain.model.MediaFile
 import io.github.imove.ui.components.MediaThumbnail
-import io.github.imove.ui.components.QueueBottomSheet
 import io.github.imove.util.DateUtils
 import io.github.imove.viewmodel.TransferViewModel
 
 private sealed class GridItem {
-    data class Header(val label: String, val count: Int) : GridItem()
+    data class Header(val label: String, val files: List<MediaFile>) : GridItem()
     data class File(val file: MediaFile) : GridItem()
 }
 
@@ -60,16 +61,21 @@ fun TransferScreen(
 ) {
     val files by viewModel.displayFiles.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
-    val selectedFiles by viewModel.selectedFiles.collectAsState()
-    val isMultiSelect by viewModel.isMultiSelectMode.collectAsState()
     val queue by viewModel.queue.collectAsState()
-    val transferredIds by viewModel.transferredIds.collectAsState()
-    var showQueue by remember { mutableStateOf(false) }
+
+    var showDone by remember { mutableStateOf(false) }
+    var prevQueueSize by remember { mutableStateOf(queue.size) }
+    LaunchedEffect(queue.size) {
+        if (prevQueueSize > 0 && queue.isEmpty()) {
+            showDone = true
+            kotlinx.coroutines.delay(500)
+            showDone = false
+        }
+        prevQueueSize = queue.size
+    }
 
     val gridState = rememberLazyGridState()
     val gridColumns = viewModel.gridColumns.collectAsState().value
-
-    val queuedFileIds = remember(queue) { queue.map { it.file.id }.toSet() }
 
     val gridItems = remember(files) {
         buildList {
@@ -78,13 +84,12 @@ fun TransferScreen(
             }
             grouped.forEach { (_, group) ->
                 val representativeDate = group.first().dateTaken.takeIf { it > 0 } ?: group.first().dateModified
-                add(GridItem.Header(DateUtils.formatDateHeader(representativeDate), group.size))
+                add(GridItem.Header(DateUtils.formatDateHeader(representativeDate), group))
                 group.forEach { add(GridItem.File(it)) }
             }
         }
     }
 
-    // Preload thumbnails: initial batch on load, then more as user scrolls
     LaunchedEffect(files) {
         if (files.isNotEmpty()) {
             viewModel.preloadImages(0)
@@ -99,37 +104,45 @@ fun TransferScreen(
                 }
             }
     }
+    LaunchedEffect(gridState) {
+        snapshotFlow { gridState.isScrollInProgress }
+            .collect { scrolling ->
+                if (!scrolling) {
+                    val index = gridState.firstVisibleItemIndex
+                    val target = index + 50
+                    if (target < files.size) {
+                        viewModel.preloadImages(target)
+                    }
+                }
+            }
+    }
 
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
                 title = {
                     Text(
-                        if (isMultiSelect) "已选 ${selectedFiles.size} 个"
-                        else if (isLoading && files.isEmpty()) "加载中..."
-                        else "共 ${files.size} 个文件"
+                        if (isLoading && files.isEmpty()) stringResource(R.string.loading)
+                        else stringResource(R.string.total_files, files.size)
                     )
                 },
                 navigationIcon = {
-                    if (isMultiSelect) {
-                        IconButton(onClick = { viewModel.toggleMultiSelectMode() }) {
-                            Icon(Icons.Default.Close, contentDescription = "关闭")
-                        }
-                    } else {
-                        IconButton(onClick = onBack) {
-                            Icon(Icons.Default.ArrowBack, contentDescription = "返回")
-                        }
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 actions = {
-                    if (isMultiSelect) {
-                        Button(onClick = { viewModel.moveSelectedFiles() }) {
-                            Text("Move (${selectedFiles.size})")
-                        }
-                    } else {
-                        IconButton(onClick = { viewModel.toggleMultiSelectMode() }) {
-                            Icon(Icons.Default.DoneAll, contentDescription = "多选")
-                        }
+                    AnimatedVisibility(
+                        visible = queue.isNotEmpty() || showDone,
+                        enter = fadeIn(),
+                        exit = fadeOut()
+                    ) {
+                        Text(
+                            text = if (queue.isNotEmpty()) "${queue.size}" else "Done",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(end = 16.dp)
+                        )
                     }
                 }
             )
@@ -149,7 +162,7 @@ fun TransferScreen(
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             CircularProgressIndicator(modifier = Modifier.size(48.dp))
                             Text(
-                                text = "正在扫描文件...",
+                                text = stringResource(R.string.scanning_files),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(top = 16.dp)
@@ -163,7 +176,7 @@ fun TransferScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "未找到媒体文件",
+                            text = stringResource(R.string.no_media_found),
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -182,15 +195,27 @@ fun TransferScreen(
                             when (item) {
                                 is GridItem.Header -> {
                                     item(key = "header_${item.label}", span = { GridItemSpan(maxLineSpan) }) {
-                                        Text(
-                                            text = "${item.label}（${item.count}）",
-                                            style = MaterialTheme.typography.titleSmall,
-                                            color = MaterialTheme.colorScheme.primary,
+                                        Row(
                                             modifier = Modifier
                                                 .fillMaxWidth()
                                                 .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                                                .padding(horizontal = 8.dp, vertical = 6.dp)
-                                        )
+                                                .padding(horizontal = 8.dp, vertical = 6.dp),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(
+                                                text = "${item.label}（${item.files.size}）",
+                                                style = MaterialTheme.typography.titleSmall,
+                                                color = MaterialTheme.colorScheme.primary
+                                            )
+                                            Button(
+                                                onClick = { viewModel.addToQueue(item.files) },
+                                                modifier = Modifier.height(24.dp),
+                                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp)
+                                            ) {
+                                                Text(stringResource(R.string.move), style = MaterialTheme.typography.labelSmall)
+                                            }
+                                        }
                                     }
                                 }
                                 is GridItem.File -> {
@@ -200,9 +225,7 @@ fun TransferScreen(
                                         val onLongClick = remember(file.id) { { onPreview(file.id) } }
                                         MediaThumbnail(
                                             file = file,
-                                            isTransferred = file.id in transferredIds,
-                                            isQueued = file.id in queuedFileIds,
-                                            isSelected = file.id in selectedFiles,
+                                            viewModel = viewModel,
                                             onClick = onClick,
                                             onLongClick = onLongClick
                                         )
@@ -213,37 +236,6 @@ fun TransferScreen(
                     }
                 }
             }
-
-            // Floating queue button at bottom-left
-            SmallFloatingActionButton(
-                onClick = { showQueue = true },
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .padding(16.dp)
-            ) {
-                if (queue.isNotEmpty()) {
-                    BadgedBox(
-                        badge = { Badge { Text("${queue.size}") } }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.DoneAll,
-                            contentDescription = "队列"
-                        )
-                    }
-                } else {
-                    Icon(
-                        imageVector = Icons.Default.DoneAll,
-                        contentDescription = "队列"
-                    )
-                }
-            }
         }
-    }
-
-    if (showQueue) {
-        QueueBottomSheet(
-            queue = queue,
-            onDismiss = { showQueue = false }
-        )
     }
 }

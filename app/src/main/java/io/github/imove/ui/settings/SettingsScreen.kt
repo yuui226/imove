@@ -26,6 +26,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import io.github.imove.R
 import io.github.imove.viewmodel.SettingsViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -54,10 +56,10 @@ fun SettingsScreen(
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("设置") },
+                title = { Text(stringResource(R.string.settings)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             )
@@ -70,10 +72,10 @@ fun SettingsScreen(
         ) {
             // Target directory
             ListItem(
-                headlineContent = { Text("保存位置") },
+                headlineContent = { Text(stringResource(R.string.save_location)) },
                 supportingContent = {
                     Text(
-                        text = if (preferences.targetDirectory.isBlank()) "未设置"
+                        text = if (preferences.targetDirectory.isBlank()) stringResource(R.string.not_set)
                         else preferences.targetDirectory.substringAfterLast('/').ifBlank { preferences.targetDirectory },
                         style = MaterialTheme.typography.bodySmall
                     )
@@ -87,14 +89,14 @@ fun SettingsScreen(
                         }
                         targetDirLauncher.launch(intent)
                     }) {
-                        Icon(Icons.Default.FolderOpen, contentDescription = "选择目录")
+                        Icon(Icons.Default.FolderOpen, contentDescription = stringResource(R.string.select_directory))
                     }
                 }
             )
 
             // Grid columns
             ListItem(
-                headlineContent = { Text("网格列数") },
+                headlineContent = { Text(stringResource(R.string.grid_columns)) },
                 supportingContent = {
                     SingleChoiceSegmentedButtonRow {
                         listOf(1, 2, 3, 4).forEachIndexed { index, cols ->
@@ -112,10 +114,13 @@ fun SettingsScreen(
 
             // Language
             ListItem(
-                headlineContent = { Text("语言") },
+                headlineContent = { Text(stringResource(R.string.language)) },
                 supportingContent = {
                     SingleChoiceSegmentedButtonRow {
-                        val options = listOf("system" to "系统", "zh" to "中文", "en" to "EN")
+                        val options = listOf(
+                            "zh" to stringResource(R.string.chinese),
+                            "en" to stringResource(R.string.english)
+                        )
                         options.forEachIndexed { index, (value, label) ->
                             SegmentedButton(
                                 shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size),
@@ -131,10 +136,14 @@ fun SettingsScreen(
 
             // Dark mode
             ListItem(
-                headlineContent = { Text("深色模式") },
+                headlineContent = { Text(stringResource(R.string.dark_mode)) },
                 supportingContent = {
                     SingleChoiceSegmentedButtonRow {
-                        val options = listOf("system" to "系统", "light" to "浅色", "dark" to "深色")
+                        val options = listOf(
+                            "system" to stringResource(R.string.system_default),
+                            "light" to stringResource(R.string.light),
+                            "dark" to stringResource(R.string.dark)
+                        )
                         options.forEachIndexed { index, (value, label) ->
                             SegmentedButton(
                                 shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size),

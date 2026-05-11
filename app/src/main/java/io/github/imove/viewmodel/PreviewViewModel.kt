@@ -35,6 +35,8 @@ class PreviewViewModel @Inject constructor(
         .map { items -> items.map { it.file.id }.toSet() }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
 
+    val transferredIds: StateFlow<Set<String>> = transferRepository.getTransferredFileIds()
+
     private val _justQueued = MutableStateFlow<Set<String>>(emptySet())
     val justQueued: StateFlow<Set<String>> = _justQueued.asStateFlow()
 
@@ -72,6 +74,10 @@ class PreviewViewModel @Inject constructor(
         val file = files.value.getOrNull(_currentIndex.value) ?: return false
         return _justQueued.value.contains(file.id) ||
                 file.id in queuedFileIds.value
+    }
+
+    fun cleanJustQueued(transferred: Set<String>) {
+        _justQueued.value = _justQueued.value - transferred
     }
 
     fun getCurrentFile(): MediaFile? = files.value.getOrNull(_currentIndex.value)

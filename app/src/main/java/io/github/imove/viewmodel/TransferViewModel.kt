@@ -15,7 +15,6 @@ import io.github.imove.domain.repository.TransferRepository
 import io.github.imove.domain.repository.UserPreferencesRepository
 import io.github.imove.util.BitmapCache
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
@@ -43,15 +42,13 @@ class TransferViewModel @Inject constructor(
     val queue: StateFlow<List<TransferItem>> = transferRepository.getQueue()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    val queuedFileIds: StateFlow<Set<String>> = queue
+        .map { items -> items.map { it.file.id }.toSet() }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
+
     val gridColumns: StateFlow<Int> = preferencesRepository.getPreferences()
         .map { it.gridColumns }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 3)
-
-    private val _selectedFiles = MutableStateFlow<Set<String>>(emptySet())
-    val selectedFiles: StateFlow<Set<String>> = _selectedFiles
-
-    private val _isMultiSelectMode = MutableStateFlow(false)
-    val isMultiSelectMode: StateFlow<Boolean> = _isMultiSelectMode
 
     fun setDisplayMode(mode: String) {
         filesStore.setDisplayMode(mode)
@@ -63,31 +60,16 @@ class TransferViewModel @Inject constructor(
     }
 
     fun onFileClick(file: MediaFile) {
-        if (_isMultiSelectMode.value) {
-            toggleSelection(file.id)
-        } else {
+        if (file.id !in transferredIds.value && file.id !in queuedFileIds.value) {
             transferRepository.addToQueue(listOf(file))
         }
     }
 
-    fun toggleMultiSelectMode() {
-        _isMultiSelectMode.value = !_isMultiSelectMode.value
-        if (!_isMultiSelectMode.value) {
-            _selectedFiles.value = emptySet()
-        }
-    }
-
-    private fun toggleSelection(fileId: String) {
-        _selectedFiles.value = _selectedFiles.value.toMutableSet().apply {
-            if (contains(fileId)) remove(fileId) else add(fileId)
-        }
-    }
-
-    fun moveSelectedFiles() {
-        val selected = filesStore.allFiles.value.filter { it.id in _selectedFiles.value }
-        transferRepository.addToQueue(selected)
-        _selectedFiles.value = emptySet()
-        _isMultiSelectMode.value = false
+    fun addToQueue(files: List<MediaFile>) {
+        val transferred = transferredIds.value
+        val queued = queuedFileIds.value
+        val pending = files.filter { it.id !in transferred && it.id !in queued }
+        if (pending.isNotEmpty()) transferRepository.addToQueue(pending)
     }
 
     fun removeFromQueue(itemId: String) {

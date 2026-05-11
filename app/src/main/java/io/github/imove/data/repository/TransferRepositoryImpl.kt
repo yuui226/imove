@@ -41,7 +41,7 @@ class TransferRepositoryImpl @Inject constructor(
 
     companion object {
         private const val TAG = "TransferRepo"
-        private const val BUFFER_SIZE = 8192
+        private const val BUFFER_SIZE = 262144
     }
 
     private val _queue = MutableStateFlow<List<TransferItem>>(emptyList())
@@ -49,6 +49,9 @@ class TransferRepositoryImpl @Inject constructor(
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val mainHandler = Handler(Looper.getMainLooper())
     private val copySemaphore = Semaphore(20)
+
+    @Volatile private var cachedTargetUri: Uri? = null
+    @Volatile private var cachedTreeDoc: DocumentFile? = null
 
     private fun toast(msg: String) {
         Log.d(TAG, msg)
@@ -72,6 +75,21 @@ class TransferRepositoryImpl @Inject constructor(
         }
     }
 
+    private suspend fun resolveTargetDir(): Pair<Uri, DocumentFile> {
+        cachedTreeDoc?.let { doc -> cachedTargetUri?.let { uri -> return Pair(uri, doc) } }
+        val prefs = preferencesRepository.getPreferences().first()
+        val targetDir = prefs.targetDirectory
+        if (targetDir.isBlank()) throw Exception("未设置目标目录")
+        val uri = Uri.parse(targetDir)
+        if (uri.scheme != "content") throw Exception("目标目录无效: $targetDir")
+        val doc = DocumentFile.fromTreeUri(context, uri)
+            ?: throw Exception("无法写入目标目录: $targetDir")
+        if (!doc.canWrite()) throw Exception("无法写入目标目录: $targetDir")
+        cachedTargetUri = uri
+        cachedTreeDoc = doc
+        return Pair(uri, doc)
+    }
+
     private suspend fun copyFile(item: TransferItem) {
         val fileName = item.file.name
         try {
@@ -79,17 +97,8 @@ class TransferRepositoryImpl @Inject constructor(
                 list.map { if (it.id == item.id) it.copy(status = TransferStatus.TRANSFERRING) else it }
             }
 
-            val prefs = preferencesRepository.getPreferences().first()
-            val targetDir = prefs.targetDirectory
-            if (targetDir.isBlank()) throw Exception("未设置目标目录")
-            val targetUri = Uri.parse(targetDir)
-            if (targetUri.scheme != "content") throw Exception("目标目录无效: $targetDir")
-
-            val mimeType = item.file.mimeType
-
-            val treeDoc = DocumentFile.fromTreeUri(context, targetUri)
-            if (treeDoc == null || !treeDoc.canWrite()) throw Exception("无法写入目标目录: $targetDir")
-            val destFile = treeDoc.createFile(mimeType, fileName)
+            val (_, treeDoc) = resolveTargetDir()
+            val destFile = treeDoc.createFile(item.file.mimeType, fileName)
                 ?: throw Exception("无法创建文件: $fileName")
             val destUri = destFile.uri
 

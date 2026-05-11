@@ -31,7 +31,7 @@ class UserPreferencesDataSource @Inject constructor(
         UserPreferences(
             targetDirectory = prefs[Keys.TARGET_DIRECTORY] ?: "",
             gridColumns = prefs[Keys.GRID_COLUMNS] ?: 3,
-            language = prefs[Keys.LANGUAGE] ?: "system",
+            language = prefs[Keys.LANGUAGE] ?: if (java.util.Locale.getDefault().language.startsWith("zh")) "zh" else "en",
             darkMode = prefs[Keys.DARK_MODE] ?: "system"
         )
     }

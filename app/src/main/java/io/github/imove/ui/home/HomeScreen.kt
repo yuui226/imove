@@ -33,7 +33,9 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import io.github.imove.R
 import io.github.imove.domain.model.StorageDevice
 import io.github.imove.ui.components.TransferModeCard
 
@@ -56,7 +58,7 @@ fun HomeScreen(
                 title = { Text("iMove") },
                 actions = {
                     IconButton(onClick = onSettings) {
-                        Icon(Icons.Default.Settings, contentDescription = "设置")
+                        Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.settings))
                     }
                 }
             )
@@ -73,7 +75,7 @@ fun HomeScreen(
                 CircularProgressIndicator(modifier = Modifier.size(48.dp))
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = "正在检测设备...",
+                    text = stringResource(R.string.detecting_device),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -94,7 +96,7 @@ fun HomeScreen(
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = "请连接存储设备",
+                    text = stringResource(R.string.connect_device),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -110,7 +112,7 @@ fun HomeScreen(
                 CircularProgressIndicator(modifier = Modifier.size(48.dp))
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = "正在恢复设备配置...",
+                    text = stringResource(R.string.restoring_config),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -131,13 +133,13 @@ fun HomeScreen(
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = "已连接: ${connectedDevice.volumeLabel}",
+                    text = "${stringResource(R.string.connected)}: ${connectedDevice.volumeLabel}",
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "请选择设备上的照片/视频目录",
+                    text = stringResource(R.string.select_photo_dir),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -145,7 +147,7 @@ fun HomeScreen(
                 Button(onClick = onSelectSourceDirectory) {
                     Icon(Icons.Default.FolderOpen, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("选择目录")
+                    Text(stringResource(R.string.select_directory))
                 }
             }
         } else {
@@ -164,28 +166,28 @@ fun HomeScreen(
                     item {
                         TransferModeCard(
                             icon = Icons.Default.CalendarToday,
-                            label = "近一日",
+                            label = stringResource(R.string.transfer_today),
                             onClick = onTransferToday
                         )
                     }
                     item {
                         TransferModeCard(
                             icon = Icons.Default.DateRange,
-                            label = "近三日",
+                            label = stringResource(R.string.transfer_three_days),
                             onClick = onTransferThreeDays
                         )
                     }
                     item {
                         TransferModeCard(
                             icon = Icons.Default.DateRange,
-                            label = "近十日",
+                            label = stringResource(R.string.transfer_ten_days),
                             onClick = onTransferTenDays
                         )
                     }
                     item {
                         TransferModeCard(
                             icon = Icons.Default.FolderOpen,
-                            label = "全部",
+                            label = stringResource(R.string.transfer_custom),
                             onClick = onTransferCustom
                         )
                     }
@@ -217,7 +219,7 @@ fun HomeScreen(
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("更换目录")
+                        Text(stringResource(R.string.change_directory))
                     }
                 }
             }

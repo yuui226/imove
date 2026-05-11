@@ -28,10 +28,10 @@ class TransferNotificationManager(private val context: Context) {
     private fun createChannel() {
         val channel = NotificationChannel(
             CHANNEL_ID,
-            "文件传输",
+            context.getString(R.string.transfer_channel_name),
             NotificationManager.IMPORTANCE_LOW
         ).apply {
-            description = "显示文件传输进度"
+            description = context.getString(R.string.transfer_channel_desc)
         }
         notificationManager.createNotificationChannel(channel)
     }
@@ -49,8 +49,8 @@ class TransferNotificationManager(private val context: Context) {
 
         return NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_popup_sync)
-            .setContentTitle("正在传输照片")
-            .setContentText("已传输 $completed/$total，队列等待 $queued 个")
+            .setContentTitle(context.getString(R.string.transfer_photos))
+            .setContentText(context.getString(R.string.transfer_progress_detail, completed, total, queued))
             .setProgress(total, completed, false)
             .setContentIntent(pendingIntent)
             .setOngoing(true)
@@ -66,8 +66,8 @@ class TransferNotificationManager(private val context: Context) {
 
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_dialog_info)
-            .setContentTitle("传输完成")
-            .setContentText("成功 $success 个，跳过 $skipped 个，失败 $failed 个")
+            .setContentTitle(context.getString(R.string.transfer_complete))
+            .setContentText(context.getString(R.string.transfer_result, success, skipped, failed))
             .setContentIntent(pendingIntent)
             .setAutoCancel(true)
             .build()
@@ -78,7 +78,7 @@ class TransferNotificationManager(private val context: Context) {
     fun showErrorNotification(reason: String) {
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_dialog_alert)
-            .setContentTitle("传输中断")
+            .setContentTitle(context.getString(R.string.transfer_interrupted))
             .setContentText(reason)
             .setAutoCancel(true)
             .build()

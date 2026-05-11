@@ -36,8 +36,7 @@ class SettingsViewModel @Inject constructor(
             preferencesRepository.updateLanguage(language)
             val localeList = when (language) {
                 "zh" -> LocaleListCompat.forLanguageTags("zh")
-                "en" -> LocaleListCompat.forLanguageTags("en")
-                else -> LocaleListCompat.getEmptyLocaleList()
+                else -> LocaleListCompat.forLanguageTags("en")
             }
             AppCompatDelegate.setApplicationLocales(localeList)
         }

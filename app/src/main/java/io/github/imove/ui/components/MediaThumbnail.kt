@@ -18,8 +18,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.key
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -29,22 +30,29 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import io.github.imove.R
 import coil.compose.AsyncImage
 import coil.compose.AsyncImagePainter
 import io.github.imove.domain.model.MediaFile
 import io.github.imove.util.BitmapCache
+import io.github.imove.viewmodel.TransferViewModel
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MediaThumbnail(
     file: MediaFile,
-    isTransferred: Boolean = false,
-    isQueued: Boolean = false,
-    isSelected: Boolean = false,
+    viewModel: TransferViewModel,
     onClick: () -> Unit,
     onLongClick: (() -> Unit)? = null
 ) {
+    val transferredIds by viewModel.transferredIds.collectAsState()
+    val queuedFileIds by viewModel.queuedFileIds.collectAsState()
+
+    val isTransferred = file.id in transferredIds
+    val isQueued = file.id in queuedFileIds
+
     var cachedBitmap by remember(file.id) {
         mutableStateOf(BitmapCache.get(file.path))
     }
@@ -90,7 +98,7 @@ fun MediaThumbnail(
             if (file.isVideo) {
                 Icon(
                     imageVector = Icons.Default.PlayCircle,
-                    contentDescription = "视频",
+                    contentDescription = stringResource(R.string.video),
                     tint = Color.White,
                     modifier = Modifier
                         .align(Alignment.Center)
@@ -102,7 +110,7 @@ fun MediaThumbnail(
         if (isTransferred) {
             Icon(
                 imageVector = Icons.Default.CheckCircle,
-                contentDescription = "已传输",
+                contentDescription = stringResource(R.string.transferred),
                 tint = Color.Green,
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
@@ -128,21 +136,5 @@ fun MediaThumbnail(
             }
         }
 
-        if (isSelected) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color(0x442196F3))
-            )
-            Icon(
-                imageVector = Icons.Default.CheckCircle,
-                contentDescription = "已选中",
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(4.dp)
-                    .size(24.dp)
-            )
-        }
     }
 }
