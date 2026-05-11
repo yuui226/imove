@@ -46,6 +46,7 @@ fun HomeScreen(
     onSelectSourceDirectory: () -> Unit,
     onTransferToday: () -> Unit,
     onTransferThreeDays: () -> Unit,
+    onTransferTenDays: () -> Unit,
     onTransferCustom: () -> Unit,
     onSettings: () -> Unit
 ) {
@@ -172,6 +173,13 @@ fun HomeScreen(
                             icon = Icons.Default.DateRange,
                             label = "近三日",
                             onClick = onTransferThreeDays
+                        )
+                    }
+                    item {
+                        TransferModeCard(
+                            icon = Icons.Default.DateRange,
+                            label = "近十日",
+                            onClick = onTransferTenDays
                         )
                     }
                     item {

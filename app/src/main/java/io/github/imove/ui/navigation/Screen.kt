@@ -6,8 +6,8 @@ sealed class Screen(val route: String) {
         fun createRoute(mode: String, startDate: Long = 0L, endDate: Long = 0L) =
             "transfer/$mode/$startDate/$endDate"
     }
-    data object Preview : Screen("preview/{fileIndex}") {
-        fun createRoute(fileIndex: Int) = "preview/$fileIndex"
+    data object Preview : Screen("preview/{fileId}") {
+        fun createRoute(fileId: String) = "preview/${android.net.Uri.encode(fileId)}"
     }
     data object Settings : Screen("settings")
 }

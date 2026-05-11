@@ -4,6 +4,7 @@
     <string name="connect_device">Please connect a storage device</string>
     <string name="transfer_today">Last Day</string>
     <string name="transfer_three_days">Last 3 Days</string>
+    <string name="transfer_ten_days">Last 10 Days</string>
     <string name="transfer_custom">All</string>
     <string name="settings">Settings</string>
     <string name="grid_columns">Grid Columns</string>

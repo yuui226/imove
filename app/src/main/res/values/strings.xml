@@ -4,6 +4,7 @@
     <string name="connect_device">请连接存储设备</string>
     <string name="transfer_today">近一日</string>
     <string name="transfer_three_days">近三日</string>
+    <string name="transfer_ten_days">近十日</string>
     <string name="transfer_custom">全部</string>
     <string name="settings">设置</string>
     <string name="grid_columns">网格列数</string>

@@ -35,14 +35,11 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import coil.imageLoader
-import coil.request.ImageRequest
 import io.github.imove.domain.model.MediaFile
 import io.github.imove.ui.components.MediaThumbnail
 import io.github.imove.ui.components.QueueBottomSheet
@@ -59,9 +56,9 @@ private sealed class GridItem {
 fun TransferScreen(
     viewModel: TransferViewModel,
     onBack: () -> Unit,
-    onPreview: (Int) -> Unit
+    onPreview: (String) -> Unit
 ) {
-    val files by viewModel.files.collectAsState()
+    val files by viewModel.displayFiles.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val selectedFiles by viewModel.selectedFiles.collectAsState()
     val isMultiSelect by viewModel.isMultiSelectMode.collectAsState()
@@ -70,9 +67,9 @@ fun TransferScreen(
     var showQueue by remember { mutableStateOf(false) }
 
     val gridState = rememberLazyGridState()
-    val context = LocalContext.current
-    val imageLoader = context.imageLoader
     val gridColumns = viewModel.gridColumns.collectAsState().value
+
+    val queuedFileIds = remember(queue) { queue.map { it.file.id }.toSet() }
 
     val gridItems = remember(files) {
         buildList {
@@ -87,22 +84,18 @@ fun TransferScreen(
         }
     }
 
-    // Prefetch nearby images (5 rows ahead)
-    val prefetchCount = gridColumns * 5
-    LaunchedEffect(gridState, gridItems) {
-        snapshotFlow { gridState.firstVisibleItemIndex + gridState.layoutInfo.visibleItemsInfo.size }
-            .collect { firstAfterVisible ->
-                val end = (firstAfterVisible + prefetchCount).coerceAtMost(gridItems.size)
-                for (i in firstAfterVisible until end) {
-                    val item = gridItems.getOrNull(i)
-                    if (item is GridItem.File) {
-                        imageLoader.enqueue(
-                            ImageRequest.Builder(context)
-                                .data(item.file.path)
-                                .size(300, 300)
-                                .build()
-                        )
-                    }
+    // Preload thumbnails: initial batch on load, then more as user scrolls
+    LaunchedEffect(files) {
+        if (files.isNotEmpty()) {
+            viewModel.preloadImages(0)
+        }
+    }
+    LaunchedEffect(gridState) {
+        snapshotFlow { gridState.firstVisibleItemIndex }
+            .collect { index ->
+                val half = files.size / 2
+                if (half > 0 && index >= half) {
+                    viewModel.preloadImages(half)
                 }
             }
     }
@@ -113,7 +106,7 @@ fun TransferScreen(
                 title = {
                     Text(
                         if (isMultiSelect) "已选 ${selectedFiles.size} 个"
-                        else if (isLoading) "加载中..."
+                        else if (isLoading && files.isEmpty()) "加载中..."
                         else "共 ${files.size} 个文件"
                     )
                 },
@@ -148,7 +141,7 @@ fun TransferScreen(
                 .padding(padding)
         ) {
             when {
-                isLoading -> {
+                isLoading && files.isEmpty() -> {
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
@@ -188,7 +181,7 @@ fun TransferScreen(
                         gridItems.forEach { item ->
                             when (item) {
                                 is GridItem.Header -> {
-                                    item(span = { GridItemSpan(maxLineSpan) }) {
+                                    item(key = "header_${item.label}", span = { GridItemSpan(maxLineSpan) }) {
                                         Text(
                                             text = "${item.label}（${item.count}）",
                                             style = MaterialTheme.typography.titleSmall,
@@ -201,18 +194,17 @@ fun TransferScreen(
                                     }
                                 }
                                 is GridItem.File -> {
-                                    item {
+                                    item(key = item.file.id) {
+                                        val file = item.file
+                                        val onClick = remember(file.id) { { viewModel.onFileClick(file) } }
+                                        val onLongClick = remember(file.id) { { onPreview(file.id) } }
                                         MediaThumbnail(
-                                            file = item.file,
-                                            isTransferred = item.file.id in transferredIds,
-                                            isQueued = queue.any { it.file.id == item.file.id },
-                                            isSelected = item.file.id in selectedFiles,
-                                            onClick = { viewModel.onFileClick(item.file) },
-                                            onLongClick = {
-                                                val index = files.indexOf(item.file)
-                                                android.util.Log.d("TransferScreen", "Long press: file=${item.file.name}, index=$index, filesSize=${files.size}")
-                                                onPreview(index)
-                                            }
+                                            file = file,
+                                            isTransferred = file.id in transferredIds,
+                                            isQueued = file.id in queuedFileIds,
+                                            isSelected = file.id in selectedFiles,
+                                            onClick = onClick,
+                                            onLongClick = onLongClick
                                         )
                                     }
                                 }

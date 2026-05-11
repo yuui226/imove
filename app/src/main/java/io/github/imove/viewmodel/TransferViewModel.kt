@@ -1,44 +1,44 @@
 package io.github.imove.viewmodel
 
-import android.util.Log
+import android.content.Context
+import android.graphics.BitmapFactory
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import io.github.imove.data.transfer.LoadedFilesStore
 import io.github.imove.data.usb.UsbDeviceManager
 import io.github.imove.domain.model.MediaFile
 import io.github.imove.domain.model.TransferItem
-import io.github.imove.domain.repository.MediaRepository
 import io.github.imove.domain.repository.TransferRepository
 import io.github.imove.domain.repository.UserPreferencesRepository
+import io.github.imove.util.BitmapCache
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import javax.inject.Inject
 
 @HiltViewModel
 class TransferViewModel @Inject constructor(
-    private val mediaRepository: MediaRepository,
+    @ApplicationContext private val context: Context,
     private val transferRepository: TransferRepository,
     private val preferencesRepository: UserPreferencesRepository,
     private val usbDeviceManager: UsbDeviceManager,
     private val filesStore: LoadedFilesStore
 ) : ViewModel() {
 
-    val files: StateFlow<List<MediaFile>> = filesStore.files
+    val allFiles: StateFlow<List<MediaFile>> = filesStore.allFiles
+    val displayFiles: StateFlow<List<MediaFile>> = filesStore.displayFiles
     val isLoading: StateFlow<Boolean> = filesStore.isLoading
 
-    private val _selectedFiles = MutableStateFlow<Set<String>>(emptySet())
-    val selectedFiles: StateFlow<Set<String>> = _selectedFiles.asStateFlow()
-
     val transferredIds: StateFlow<Set<String>> = transferRepository.getTransferredFileIds()
-
-    private val _isMultiSelectMode = MutableStateFlow(false)
-    val isMultiSelectMode: StateFlow<Boolean> = _isMultiSelectMode.asStateFlow()
 
     val queue: StateFlow<List<TransferItem>> = transferRepository.getQueue()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -47,70 +47,19 @@ class TransferViewModel @Inject constructor(
         .map { it.gridColumns }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 3)
 
-    fun loadFiles(startDate: Long = 0, endDate: Long = 0) {
-        if (filesStore.isSameLoad(startDate, endDate)) {
-            Log.d("TransferViewModel", "loadFiles: same params already loaded, skipping")
-            return
-        }
-        if (filesStore.isLoading.value) return
+    private val _selectedFiles = MutableStateFlow<Set<String>>(emptySet())
+    val selectedFiles: StateFlow<Set<String>> = _selectedFiles
 
-        val device = usbDeviceManager.connectedDevice.value
-        if (device == null) {
-            Log.w("TransferViewModel", "loadFiles: no connected device")
-            return
-        }
-        Log.d("TransferViewModel", "loadFiles: sourcePath=${device.sourcePath}, startDate=$startDate, endDate=$endDate")
-        filesStore.setLoading(true)
-        viewModelScope.launch {
-            try {
-                val flow = if (startDate > 0 && endDate > 0) {
-                    mediaRepository.getFilesByDateRange(device, startDate, endDate)
-                } else {
-                    mediaRepository.getFilesFromDevice(device)
-                }
-                flow.collect { fileList ->
-                    filesStore.setFiles(fileList, startDate, endDate)
-                }
-            } catch (e: Exception) {
-                Log.e("TransferViewModel", "loadFiles error", e)
-            } finally {
-                filesStore.setLoading(false)
-            }
-        }
+    private val _isMultiSelectMode = MutableStateFlow(false)
+    val isMultiSelectMode: StateFlow<Boolean> = _isMultiSelectMode
+
+    fun setDisplayMode(mode: String) {
+        filesStore.setDisplayMode(mode)
     }
 
-    fun loadLatestDay() {
-        if (filesStore.isLoading.value) return
-        if (filesStore.isSameLoad(-1, -1)) return
-        val device = usbDeviceManager.connectedDevice.value
-        if (device == null) {
-            Log.w("TransferViewModel", "loadLatestDay: no connected device")
-            return
-        }
-        Log.d("TransferViewModel", "loadLatestDay: sourcePath=${device.sourcePath}")
-        filesStore.setLoading(true)
-        viewModelScope.launch {
-            try {
-                mediaRepository.getFilesFromDevice(device).collect { allFiles ->
-                    if (allFiles.isEmpty()) {
-                        filesStore.setFiles(emptyList(), -1, -1)
-                        return@collect
-                    }
-                    val latestDayKey = allFiles
-                        .maxOf { it.dateTaken.takeIf { d -> d > 0 } ?: it.dateModified }
-                        .let { io.github.imove.util.DateUtils.getDayKey(it) }
-                    val latestDayFiles = allFiles.filter { file ->
-                        val date = file.dateTaken.takeIf { d -> d > 0 } ?: file.dateModified
-                        io.github.imove.util.DateUtils.getDayKey(date) == latestDayKey
-                    }
-                    filesStore.setFiles(latestDayFiles, -1, -1)
-                }
-            } catch (e: Exception) {
-                Log.e("TransferViewModel", "loadLatestDay error", e)
-            } finally {
-                filesStore.setLoading(false)
-            }
-        }
+    fun loadAllFiles() {
+        val device = usbDeviceManager.connectedDevice.value ?: return
+        filesStore.loadAllFiles(device)
     }
 
     fun onFileClick(file: MediaFile) {
@@ -120,8 +69,6 @@ class TransferViewModel @Inject constructor(
             transferRepository.addToQueue(listOf(file))
         }
     }
-
-    fun onFileLongPress(file: MediaFile) {}
 
     fun toggleMultiSelectMode() {
         _isMultiSelectMode.value = !_isMultiSelectMode.value
@@ -137,7 +84,7 @@ class TransferViewModel @Inject constructor(
     }
 
     fun moveSelectedFiles() {
-        val selected = filesStore.files.value.filter { it.id in _selectedFiles.value }
+        val selected = filesStore.allFiles.value.filter { it.id in _selectedFiles.value }
         transferRepository.addToQueue(selected)
         _selectedFiles.value = emptySet()
         _isMultiSelectMode.value = false
@@ -149,5 +96,32 @@ class TransferViewModel @Inject constructor(
 
     fun clearQueue() {
         transferRepository.clearQueue()
+    }
+
+    private var lastPreloadedIndex = 0
+
+    fun preloadImages(fromIndex: Int, count: Int = 150) {
+        val files = displayFiles.value
+        if (files.isEmpty()) return
+        if (fromIndex == 0) lastPreloadedIndex = -1
+        if (fromIndex <= lastPreloadedIndex) return
+        lastPreloadedIndex = fromIndex
+        val end = (fromIndex + count).coerceAtMost(files.size)
+        val semaphore = Semaphore(4)
+        for (i in fromIndex until end) {
+            val file = files[i]
+            if (BitmapCache.contains(file.path)) continue
+            viewModelScope.launch(Dispatchers.IO) {
+                semaphore.withPermit {
+                    try {
+                        context.contentResolver.openInputStream(Uri.parse(file.path))?.use { stream ->
+                            val options = BitmapFactory.Options().apply { inSampleSize = 4 }
+                            val bitmap = BitmapFactory.decodeStream(stream, null, options)
+                            if (bitmap != null) BitmapCache.put(file.path, bitmap)
+                        }
+                    } catch (_: Exception) {}
+                }
+            }
+        }
     }
 }

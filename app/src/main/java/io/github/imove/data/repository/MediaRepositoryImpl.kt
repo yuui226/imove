@@ -12,14 +12,9 @@ import io.github.imove.domain.model.StorageDevice
 import io.github.imove.domain.repository.MediaRepository
 import io.github.imove.util.FileUtils
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.sync.Semaphore
-import kotlinx.coroutines.sync.withPermit
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -29,10 +24,6 @@ class MediaRepositoryImpl @Inject constructor(
     @ApplicationContext private val context: Context,
     private val transferredFileDao: TransferredFileDao
 ) : MediaRepository {
-
-    companion object {
-        private const val PARALLELISM = 4
-    }
 
     override fun getFilesFromDevice(device: StorageDevice): Flow<List<MediaFile>> =
         scanDirectory(device.sourcePath, 0, 0)
@@ -70,39 +61,17 @@ class MediaRepositoryImpl @Inject constructor(
             DocumentsContract.getTreeDocumentId(uri)
         } catch (e: Exception) {
             Log.e("MediaRepo", "Failed to get tree document ID: $uri", e)
-            emit(emptyList())
             return@flow
         }
-
         if (treeDocId == null) {
             Log.e("MediaRepo", "treeDocId is null for $uri")
-            emit(emptyList())
             return@flow
         }
 
-        val entries = collectFileEntries(uri, treeDocId, dateStart, dateEnd)
-        Log.d("MediaRepo", "Found ${entries.size} files")
-
-        val sorted = entries.sortedByDescending { it.dateModified }
-        emit(sorted)
-    }.flowOn(Dispatchers.IO)
-
-    /**
-     * Collect files from a directory. Subdirectories are scanned in parallel
-     * (up to PARALLELISM concurrent scans).
-     */
-    private suspend fun collectFileEntries(
-        treeUri: Uri,
-        treeDocId: String,
-        dateStart: Long,
-        dateEnd: Long
-    ): List<MediaFile> = coroutineScope {
-        val files = mutableListOf<MediaFile>()
-        val subDirs = mutableListOf<String>()
         val hasDateFilter = dateStart > 0 && dateEnd > 0
-        val childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(treeUri, treeDocId)
+        val files = mutableListOf<MediaFile>()
+        val childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(uri, treeDocId)
 
-        // Phase 1: scan current directory cursor, collect files + subdirectory IDs
         try {
             context.contentResolver.query(
                 childrenUri,
@@ -124,29 +93,23 @@ class MediaRepositoryImpl @Inject constructor(
                 while (cursor.moveToNext()) {
                     val docId = cursor.getString(idCol)
                     val name = cursor.getString(nameCol) ?: continue
-                    val mime = cursor.getString(mimeCol)
+                    val mime = cursor.getString(mimeCol) ?: continue
 
-                    if (mime == DocumentsContract.Document.MIME_TYPE_DIR) {
-                        subDirs.add(docId)
-                        continue
-                    }
-
+                    // Skip directories — only scan the selected folder
+                    if (mime == DocumentsContract.Document.MIME_TYPE_DIR) continue
                     if (!FileUtils.isMediaFile(name)) continue
 
                     val modified = cursor.getLong(modifiedCol)
+                    if (hasDateFilter && (modified < dateStart || modified > dateEnd)) continue
 
-                    if (hasDateFilter && (modified < dateStart || modified > dateEnd)) {
-                        continue
-                    }
-
-                    val docUri = DocumentsContract.buildDocumentUriUsingTree(treeUri, docId)
+                    val docUri = DocumentsContract.buildDocumentUriUsingTree(uri, docId)
                     files.add(
                         MediaFile(
                             id = docId,
                             name = name,
                             path = docUri.toString(),
                             size = cursor.getLong(sizeCol),
-                            mimeType = mime ?: FileUtils.getMimeType(name),
+                            mimeType = mime,
                             dateTaken = modified,
                             dateModified = modified,
                             isVideo = FileUtils.isVideo(name)
@@ -155,23 +118,10 @@ class MediaRepositoryImpl @Inject constructor(
                 }
             }
         } catch (e: Exception) {
-            Log.e("MediaRepo", "collectFileEntries error", e)
+            Log.e("MediaRepo", "scanDirectory error", e)
         }
 
-        // Phase 2: scan subdirectories in parallel (up to PARALLELISM concurrent)
-        if (subDirs.isNotEmpty()) {
-            val semaphore = Semaphore(PARALLELISM)
-            val subResults = subDirs.map { dirDocId ->
-                async {
-                    semaphore.withPermit {
-                        collectFileEntries(treeUri, dirDocId, dateStart, dateEnd)
-                    }
-                }
-            }.awaitAll()
-
-            subResults.forEach { files.addAll(it) }
-        }
-
-        files
-    }
+        Log.d("MediaRepo", "Found ${files.size} files")
+        emit(files.sortedByDescending { it.dateModified })
+    }.flowOn(Dispatchers.IO)
 }

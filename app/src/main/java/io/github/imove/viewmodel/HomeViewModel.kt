@@ -1,7 +1,6 @@
 package io.github.imove.viewmodel
 
 import android.net.Uri
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -10,8 +9,6 @@ import io.github.imove.data.usb.StorageAccessManager
 import io.github.imove.data.usb.UsbDeviceManager
 import io.github.imove.domain.model.StorageDevice
 import io.github.imove.domain.repository.DeviceRepository
-import io.github.imove.domain.repository.MediaRepository
-import io.github.imove.util.DateUtils
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -24,7 +21,6 @@ class HomeViewModel @Inject constructor(
     private val deviceRepository: DeviceRepository,
     private val usbDeviceManager: UsbDeviceManager,
     private val storageAccessManager: StorageAccessManager,
-    private val mediaRepository: MediaRepository,
     private val filesStore: LoadedFilesStore
 ) : ViewModel() {
 
@@ -49,7 +45,7 @@ class HomeViewModel @Inject constructor(
                         restoreSourcePath(device)
                         _isRestoring.value = false
                     } else {
-                        preloadLatestDay(device)
+                        filesStore.loadAllFiles(device)
                     }
                 }
         }
@@ -68,34 +64,6 @@ class HomeViewModel @Inject constructor(
             usbDeviceManager.updateConnectedDevice(restored)
         } else if (existing == null) {
             deviceRepository.saveDevice(device)
-        }
-    }
-
-    private fun preloadLatestDay(device: StorageDevice) {
-        if (filesStore.isLoading.value || filesStore.files.value.isNotEmpty()) return
-        viewModelScope.launch {
-            try {
-                filesStore.setLoading(true)
-                mediaRepository.getFilesFromDevice(device).collect { allFiles ->
-                    if (allFiles.isEmpty()) {
-                        filesStore.setLoading(false)
-                        return@collect
-                    }
-                    val latestDayKey = allFiles
-                        .maxOf { it.dateTaken.takeIf { d -> d > 0 } ?: it.dateModified }
-                        .let { DateUtils.getDayKey(it) }
-                    val latestDayFiles = allFiles.filter { file ->
-                        val date = file.dateTaken.takeIf { d -> d > 0 } ?: file.dateModified
-                        DateUtils.getDayKey(date) == latestDayKey
-                    }
-                    filesStore.setFiles(latestDayFiles, -1, -1)
-                    Log.d("HomeViewModel", "Preloaded ${latestDayFiles.size} files from latest day")
-                }
-            } catch (e: Exception) {
-                Log.e("HomeViewModel", "Preload failed", e)
-            } finally {
-                filesStore.setLoading(false)
-            }
         }
     }
 

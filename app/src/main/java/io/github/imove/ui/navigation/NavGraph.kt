@@ -15,7 +15,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import io.github.imove.data.usb.StorageAccessManager
 import io.github.imove.ui.home.HomeScreen
-import io.github.imove.util.DateUtils
 import io.github.imove.ui.preview.PreviewScreen
 import io.github.imove.ui.settings.SettingsScreen
 import io.github.imove.ui.transfer.TransferScreen
@@ -57,6 +56,9 @@ fun NavGraph(navController: NavHostController, storageAccessManager: StorageAcce
                 onTransferThreeDays = {
                     navController.navigate(Screen.Transfer.createRoute("three_days"))
                 },
+                onTransferTenDays = {
+                    navController.navigate(Screen.Transfer.createRoute("ten_days"))
+                },
                 onTransferCustom = {
                     navController.navigate(Screen.Transfer.createRoute("custom"))
                 },
@@ -79,34 +81,34 @@ fun NavGraph(navController: NavHostController, storageAccessManager: StorageAcce
             val endDate = backStackEntry.arguments?.getLong("endDate") ?: 0L
 
             LaunchedEffect(mode) {
-                val now = System.currentTimeMillis()
-                when (mode) {
-                    "today" -> viewModel.loadLatestDay()
-                    "three_days" -> viewModel.loadFiles(DateUtils.getThreeDaysAgoStart(), now)
-                    "custom" -> viewModel.loadFiles(startDate, endDate)
-                    else -> viewModel.loadFiles()
+                val displayMode = when (mode) {
+                    "today" -> "latest_day"
+                    "three_days" -> "three_days"
+                    "ten_days" -> "ten_days"
+                    else -> "all"
                 }
+                viewModel.setDisplayMode(displayMode)
+                viewModel.loadAllFiles()
             }
 
             TransferScreen(
                 viewModel = viewModel,
                 onBack = { navController.popBackStack() },
-                onPreview = { index ->
-                    navController.navigate(Screen.Preview.createRoute(index))
+                onPreview = { fileId ->
+                    navController.navigate(Screen.Preview.createRoute(fileId))
                 }
             )
         }
         composable(
             route = Screen.Preview.route,
             arguments = listOf(
-                navArgument("fileIndex") { type = NavType.IntType }
+                navArgument("fileId") { type = NavType.StringType }
             )
         ) { backStackEntry ->
             val viewModel: PreviewViewModel = hiltViewModel()
-            val fileIndex = backStackEntry.arguments?.getInt("fileIndex") ?: 0
-            android.util.Log.d("NavGraph", "Preview: fileIndex=$fileIndex")
-            LaunchedEffect(fileIndex) {
-                viewModel.setInitialIndex(fileIndex)
+            val fileId = android.net.Uri.decode(backStackEntry.arguments?.getString("fileId") ?: "")
+            LaunchedEffect(fileId) {
+                viewModel.setInitialFile(fileId)
             }
             PreviewScreen(
                 viewModel = viewModel,

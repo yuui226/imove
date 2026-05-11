@@ -22,18 +22,18 @@ object ImageModule {
         @ApplicationContext context: Context
     ): ImageLoader {
         return ImageLoader.Builder(context)
-            .crossfade(true)
+            .crossfade(false)
             .allowHardware(true)
             .dispatcher(Dispatchers.IO)
             .memoryCache {
                 MemoryCache.Builder(context)
-                    .maxSizePercent(0.4)
+                    .maxSizePercent(0.7)
                     .build()
             }
             .diskCache {
                 DiskCache.Builder()
                     .directory(context.cacheDir.resolve("image_cache"))
-                    .maxSizePercent(0.05)
+                    .maxSizePercent(0.15)
                     .build()
             }
             .build()

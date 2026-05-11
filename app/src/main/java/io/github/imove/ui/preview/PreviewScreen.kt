@@ -43,10 +43,10 @@ fun PreviewScreen(
 ) {
     val files by viewModel.files.collectAsState()
     val currentIndex by viewModel.currentIndex.collectAsState()
-    val queue by viewModel.queue.collectAsState()
+    val queuedFileIds by viewModel.queuedFileIds.collectAsState()
     val justQueued by viewModel.justQueued.collectAsState()
 
-    if (files.isEmpty()) {
+    if (currentIndex < 0 || files.isEmpty()) {
         Scaffold(
             topBar = {
                 CenterAlignedTopAppBar(
@@ -65,24 +65,16 @@ fun PreviewScreen(
                     .padding(padding),
                 contentAlignment = Alignment.Center
             ) {
-                Text("无文件", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("加载中...", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
         return
     }
 
-    val safeIndex = currentIndex.coerceIn(0, files.lastIndex)
     val pagerState = rememberPagerState(
-        initialPage = safeIndex,
+        initialPage = currentIndex,
         pageCount = { files.size }
     )
-
-    // Scroll pager when index is set externally (e.g. from long-press)
-    LaunchedEffect(safeIndex) {
-        if (pagerState.currentPage != safeIndex) {
-            pagerState.scrollToPage(safeIndex)
-        }
-    }
 
     // Sync pager swipe back to ViewModel
     LaunchedEffect(pagerState) {
@@ -117,8 +109,7 @@ fun PreviewScreen(
                 .padding(padding)
         ) { page ->
             val file = files[page]
-            val isQueued = justQueued.contains(file.id) ||
-                    queue.any { it.file.id == file.id }
+            val isQueued = justQueued.contains(file.id) || file.id in queuedFileIds
 
             Box(
                 modifier = Modifier.fillMaxSize(),
