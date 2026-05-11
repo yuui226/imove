@@ -3,6 +3,7 @@ package io.github.imove.ui.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -25,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import io.github.imove.domain.model.MediaFile
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MediaThumbnail(
     file: MediaFile,
@@ -46,7 +48,10 @@ fun MediaThumbnail(
             model = file.path,
             contentDescription = file.name,
             contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.surfaceVariant),
+            placeholder = null
         )
 
         // Status overlays

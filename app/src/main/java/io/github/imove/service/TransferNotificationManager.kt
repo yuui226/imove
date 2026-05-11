@@ -47,21 +47,12 @@ class TransferNotificationManager(private val context: Context) {
             PendingIntent.FLAG_IMMUTABLE
         )
 
-        val cancelIntent = PendingIntent.getService(
-            context, 0,
-            Intent(context, TransferService::class.java).apply {
-                action = TransferService.ACTION_CANCEL
-            },
-            PendingIntent.FLAG_IMMUTABLE
-        )
-
         return NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_popup_sync)
             .setContentTitle("正在传输照片")
             .setContentText("已传输 $completed/$total，队列等待 $queued 个")
             .setProgress(total, completed, false)
             .setContentIntent(pendingIntent)
-            .addAction(android.R.drawable.ic_delete, "取消", cancelIntent)
             .setOngoing(true)
             .build()
     }

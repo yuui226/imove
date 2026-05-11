@@ -1,7 +1,15 @@
 package io.github.imove
 
 import android.app.Application
+import coil.ImageLoader
+import coil.ImageLoaderFactory
 import dagger.hilt.android.HiltAndroidApp
+import javax.inject.Inject
 
 @HiltAndroidApp
-class IMoveApplication : Application()
+class IMoveApplication : Application(), ImageLoaderFactory {
+
+    @Inject lateinit var imageLoader: ImageLoader
+
+    override fun newImageLoader(): ImageLoader = imageLoader
+}

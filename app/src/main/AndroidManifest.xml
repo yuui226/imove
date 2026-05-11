@@ -32,9 +32,5 @@
                 android:resource="@xml/device_filter" />
         </activity>
 
-        <service
-            android:name=".service.TransferService"
-            android:foregroundServiceType="dataSync"
-            android:exported="false" />
     </application>
 </manifest>

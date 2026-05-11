@@ -29,7 +29,7 @@ class UserPreferencesDataSource @Inject constructor(
 
     val preferences: Flow<UserPreferences> = context.dataStore.data.map { prefs ->
         UserPreferences(
-            targetDirectory = prefs[Keys.TARGET_DIRECTORY] ?: "Pictures/iMove/",
+            targetDirectory = prefs[Keys.TARGET_DIRECTORY] ?: "",
             gridColumns = prefs[Keys.GRID_COLUMNS] ?: 3,
             language = prefs[Keys.LANGUAGE] ?: "system",
             darkMode = prefs[Keys.DARK_MODE] ?: "system"

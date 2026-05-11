@@ -2,6 +2,7 @@ package io.github.imove.ui.components
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -26,7 +27,9 @@ fun TransferModeCard(
 ) {
     Card(
         onClick = onClick,
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .defaultMinSize(minHeight = 100.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
@@ -35,19 +38,19 @@ fun TransferModeCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = label,
-                modifier = Modifier.size(32.dp),
+                modifier = Modifier.size(48.dp),
                 tint = MaterialTheme.colorScheme.primary
             )
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(12.dp))
             Text(
                 text = label,
-                style = MaterialTheme.typography.bodyLarge
+                style = MaterialTheme.typography.titleMedium
             )
         }
     }

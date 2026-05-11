@@ -2,10 +2,9 @@
 <resources>
     <string name="app_name">iMove</string>
     <string name="connect_device">Please connect a storage device</string>
-    <string name="transfer_today">Transfer Today</string>
-    <string name="transfer_three_days">Transfer Last 3 Days</string>
-    <string name="transfer_custom">Custom Transfer</string>
-    <string name="transfer_all">Transfer All</string>
+    <string name="transfer_today">Last Day</string>
+    <string name="transfer_three_days">Last 3 Days</string>
+    <string name="transfer_custom">All</string>
     <string name="settings">Settings</string>
     <string name="grid_columns">Grid Columns</string>
     <string name="language">Language</string>

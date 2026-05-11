@@ -1,15 +1,21 @@
 package io.github.imove.ui.settings
 
+import android.app.Activity
+import android.content.Intent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
@@ -19,6 +25,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import io.github.imove.viewmodel.SettingsViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -27,7 +34,22 @@ fun SettingsScreen(
     viewModel: SettingsViewModel,
     onBack: () -> Unit
 ) {
+    val context = LocalContext.current
     val preferences by viewModel.preferences.collectAsState()
+
+    val targetDirLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            result.data?.data?.let { uri ->
+                context.contentResolver.takePersistableUriPermission(
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                )
+                viewModel.updateTargetDirectory(uri.toString())
+            }
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -46,6 +68,30 @@ fun SettingsScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
+            // Target directory
+            ListItem(
+                headlineContent = { Text("保存位置") },
+                supportingContent = {
+                    Text(
+                        text = if (preferences.targetDirectory.isBlank()) "未设置"
+                        else preferences.targetDirectory.substringAfterLast('/').ifBlank { preferences.targetDirectory },
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                },
+                trailingContent = {
+                    IconButton(onClick = {
+                        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).apply {
+                            flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or
+                                    Intent.FLAG_GRANT_WRITE_URI_PERMISSION or
+                                    Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION
+                        }
+                        targetDirLauncher.launch(intent)
+                    }) {
+                        Icon(Icons.Default.FolderOpen, contentDescription = "选择目录")
+                    }
+                }
+            )
+
             // Grid columns
             ListItem(
                 headlineContent = { Text("网格列数") },
@@ -100,12 +146,6 @@ fun SettingsScreen(
                         }
                     }
                 }
-            )
-
-            // Target directory
-            ListItem(
-                headlineContent = { Text("目标目录") },
-                supportingContent = { Text(preferences.targetDirectory) }
             )
         }
     }

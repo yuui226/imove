@@ -1,37 +1,114 @@
 package io.github.imove.viewmodel
 
+import android.net.Uri
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import io.github.imove.data.transfer.LoadedFilesStore
+import io.github.imove.data.usb.StorageAccessManager
 import io.github.imove.data.usb.UsbDeviceManager
 import io.github.imove.domain.model.StorageDevice
 import io.github.imove.domain.repository.DeviceRepository
-import kotlinx.coroutines.flow.SharingStarted
+import io.github.imove.domain.repository.MediaRepository
+import io.github.imove.util.DateUtils
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val deviceRepository: DeviceRepository,
-    private val usbDeviceManager: UsbDeviceManager
+    private val usbDeviceManager: UsbDeviceManager,
+    private val storageAccessManager: StorageAccessManager,
+    private val mediaRepository: MediaRepository,
+    private val filesStore: LoadedFilesStore
 ) : ViewModel() {
 
-    val connectedDevice: StateFlow<StorageDevice?> = usbDeviceManager.connectedDevice
+    val connectedDevice = usbDeviceManager.connectedDevice
+
+    private val _isDetecting = MutableStateFlow(true)
+    val isDetecting: StateFlow<Boolean> = _isDetecting.asStateFlow()
+
+    private val _isRestoring = MutableStateFlow(false)
+    val isRestoring: StateFlow<Boolean> = _isRestoring.asStateFlow()
 
     init {
         usbDeviceManager.startListening()
+        // Restore saved sourcePath for any connected device (including already-connected on launch)
+        viewModelScope.launch {
+            usbDeviceManager.connectedDevice
+                .filterNotNull()
+                .collect { device ->
+                    _isDetecting.value = false
+                    if (device.sourcePath.isEmpty()) {
+                        _isRestoring.value = true
+                        restoreSourcePath(device)
+                        _isRestoring.value = false
+                    } else {
+                        preloadLatestDay(device)
+                    }
+                }
+        }
+        // Stop detecting after a timeout even if no device found
+        viewModelScope.launch {
+            kotlinx.coroutines.delay(3000)
+            _isDetecting.value = false
+        }
     }
 
-    fun onDeviceConnected(device: StorageDevice) {
+    private suspend fun restoreSourcePath(device: StorageDevice) {
+        val existing = deviceRepository.getDeviceByVolume(device.volumeUuid)
+        if (existing != null && existing.sourcePath.isNotEmpty()) {
+            val restored = existing.copy(lastConnected = System.currentTimeMillis())
+            deviceRepository.saveDevice(restored)
+            usbDeviceManager.updateConnectedDevice(restored)
+        } else if (existing == null) {
+            deviceRepository.saveDevice(device)
+        }
+    }
+
+    private fun preloadLatestDay(device: StorageDevice) {
+        if (filesStore.isLoading.value || filesStore.files.value.isNotEmpty()) return
+        viewModelScope.launch {
+            try {
+                filesStore.setLoading(true)
+                mediaRepository.getFilesFromDevice(device).collect { allFiles ->
+                    if (allFiles.isEmpty()) {
+                        filesStore.setLoading(false)
+                        return@collect
+                    }
+                    val latestDayKey = allFiles
+                        .maxOf { it.dateTaken.takeIf { d -> d > 0 } ?: it.dateModified }
+                        .let { DateUtils.getDayKey(it) }
+                    val latestDayFiles = allFiles.filter { file ->
+                        val date = file.dateTaken.takeIf { d -> d > 0 } ?: file.dateModified
+                        DateUtils.getDayKey(date) == latestDayKey
+                    }
+                    filesStore.setFiles(latestDayFiles, -1, -1)
+                    Log.d("HomeViewModel", "Preloaded ${latestDayFiles.size} files from latest day")
+                }
+            } catch (e: Exception) {
+                Log.e("HomeViewModel", "Preload failed", e)
+            } finally {
+                filesStore.setLoading(false)
+            }
+        }
+    }
+
+    fun saveSourcePath(uri: Uri) {
+        val device = connectedDevice.value ?: return
+        storageAccessManager.takePersistablePermission(uri)
+        // Store full tree URI so MediaRepository can parse it for SAF queries
+        val sourcePath = uri.toString()
         viewModelScope.launch {
             val existing = deviceRepository.getDeviceByVolume(device.volumeUuid)
-            if (existing != null) {
-                deviceRepository.saveDevice(existing.copy(lastConnected = System.currentTimeMillis()))
-            } else {
-                deviceRepository.saveDevice(device)
-            }
+            val updated = (existing ?: device).copy(sourcePath = sourcePath)
+            deviceRepository.saveDevice(updated)
+            usbDeviceManager.updateConnectedDevice(updated)
         }
     }
 
