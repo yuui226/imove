@@ -16,7 +16,7 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
@@ -125,12 +125,13 @@ fun TransferScreen(
                 title = {
                     Text(
                         if (isLoading && files.isEmpty()) stringResource(R.string.loading)
-                        else stringResource(R.string.total_files, files.size)
+                        else stringResource(R.string.total_files, files.size),
+                        style = MaterialTheme.typography.titleSmall
                     )
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 actions = {
@@ -146,7 +147,8 @@ fun TransferScreen(
                             modifier = Modifier.padding(end = 16.dp)
                         )
                     }
-                }
+                },
+                modifier = Modifier.height(62.dp)
             )
         }
     ) { padding ->

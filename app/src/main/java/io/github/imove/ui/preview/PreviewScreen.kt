@@ -14,7 +14,7 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -66,7 +66,7 @@ fun PreviewScreen(
                     title = { Text(stringResource(R.string.preview_photo)) },
                     navigationIcon = {
                         IconButton(onClick = onBack) {
-                            Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                         }
                     }
                 )
@@ -109,7 +109,7 @@ fun PreviewScreen(
                 title = { Text("${currentPage + 1} / ${files.size}") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             )
@@ -140,7 +140,7 @@ fun PreviewScreen(
                     .pointerInput(page) {
                         var lastTapTime = 0L
                         awaitEachGesture {
-                            val down = awaitFirstDown()
+                            awaitFirstDown()
                             val now = SystemClock.uptimeMillis()
                             val isDoubleTap = now - lastTapTime < 300L
                             lastTapTime = now
