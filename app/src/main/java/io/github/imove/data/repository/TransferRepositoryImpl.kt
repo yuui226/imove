@@ -51,7 +51,7 @@ class TransferRepositoryImpl @Inject constructor(
     private val _transferredFileIds = MutableStateFlow<Set<String>>(emptySet())
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val mainHandler = Handler(Looper.getMainLooper())
-    private val copySemaphore = Semaphore(20)
+    private val copySemaphore = Semaphore(6)
     private val activeJobs = mutableMapOf<String, Job>()
 
     @Volatile private var cachedTargetUri: Uri? = null

@@ -82,14 +82,14 @@ class TransferViewModel @Inject constructor(
 
     private var lastPreloadedIndex = -1
 
-    fun preloadImages(fromIndex: Int, count: Int = 150) {
+    fun preloadImages(fromIndex: Int, count: Int = 80) {
         val files = displayFiles.value
         if (files.isEmpty()) return
         if (fromIndex == 0) lastPreloadedIndex = -1
         if (fromIndex <= lastPreloadedIndex) return
         lastPreloadedIndex = fromIndex
         val end = (fromIndex + count).coerceAtMost(files.size)
-        val semaphore = Semaphore(4)
+        val semaphore = Semaphore(8)
         for (i in fromIndex until end) {
             val file = files[i]
             if (BitmapCache.contains(file.path)) continue
