@@ -25,6 +25,9 @@ class UsbDeviceManager @Inject constructor(
     private val _connectedDevice = MutableStateFlow<StorageDevice?>(null)
     val connectedDevice: StateFlow<StorageDevice?> = _connectedDevice.asStateFlow()
 
+    private val _detectionComplete = MutableStateFlow(false)
+    val detectionComplete: StateFlow<Boolean> = _detectionComplete.asStateFlow()
+
     private val handler = Handler(Looper.getMainLooper())
 
     private val usbReceiver = object : BroadcastReceiver() {
@@ -44,6 +47,7 @@ class UsbDeviceManager @Inject constructor(
     }
 
     fun startListening() {
+        _detectionComplete.value = false
         val filter = IntentFilter().apply {
             addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED)
             addAction(UsbManager.ACTION_USB_DEVICE_DETACHED)
@@ -52,7 +56,10 @@ class UsbDeviceManager @Inject constructor(
         detectStorageVolumes()
         // Retry in case volumes are still mounting when app is launched by USB intent
         handler.postDelayed({ detectStorageVolumes() }, 1000)
-        handler.postDelayed({ detectStorageVolumes() }, 3000)
+        handler.postDelayed({
+            detectStorageVolumes()
+            _detectionComplete.value = true
+        }, 3000)
     }
 
     fun stopListening() {

@@ -1,6 +1,7 @@
 package io.github.imove.di
 
 import android.content.Context
+import android.graphics.Bitmap
 import coil.ImageLoader
 import coil.disk.DiskCache
 import coil.memory.MemoryCache
@@ -25,15 +26,16 @@ object ImageModule {
             .crossfade(false)
             .allowHardware(true)
             .dispatcher(Dispatchers.IO)
+            .bitmapConfig(Bitmap.Config.RGB_565)
             .memoryCache {
                 MemoryCache.Builder(context)
-                    .maxSizePercent(0.25)
+                    .maxSizePercent(0.50)
                     .build()
             }
             .diskCache {
                 DiskCache.Builder()
                     .directory(context.cacheDir.resolve("image_cache"))
-                    .maxSizePercent(0.15)
+                    .maxSizePercent(0.20)
                     .build()
             }
             .build()

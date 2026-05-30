@@ -1,32 +1,23 @@
 package io.github.imove.viewmodel
 
-import android.content.Context
-import android.graphics.BitmapFactory
-import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
 import io.github.imove.data.transfer.LoadedFilesStore
 import io.github.imove.data.usb.UsbDeviceManager
 import io.github.imove.domain.model.MediaFile
 import io.github.imove.domain.model.TransferItem
 import io.github.imove.domain.repository.TransferRepository
 import io.github.imove.domain.repository.UserPreferencesRepository
-import io.github.imove.util.BitmapCache
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Semaphore
-import kotlinx.coroutines.sync.withPermit
 import javax.inject.Inject
 
 @HiltViewModel
 class TransferViewModel @Inject constructor(
-    @ApplicationContext private val context: Context,
     private val transferRepository: TransferRepository,
     private val preferencesRepository: UserPreferencesRepository,
     private val usbDeviceManager: UsbDeviceManager,
@@ -78,32 +69,5 @@ class TransferViewModel @Inject constructor(
 
     fun clearQueue() {
         transferRepository.clearQueue()
-    }
-
-    private var lastPreloadedIndex = -1
-
-    fun preloadImages(fromIndex: Int, count: Int = 80) {
-        val files = displayFiles.value
-        if (files.isEmpty()) return
-        if (fromIndex == 0) lastPreloadedIndex = -1
-        if (fromIndex <= lastPreloadedIndex) return
-        lastPreloadedIndex = fromIndex
-        val end = (fromIndex + count).coerceAtMost(files.size)
-        val semaphore = Semaphore(8)
-        for (i in fromIndex until end) {
-            val file = files[i]
-            if (BitmapCache.contains(file.path)) continue
-            viewModelScope.launch(Dispatchers.IO) {
-                semaphore.withPermit {
-                    try {
-                        context.contentResolver.openInputStream(Uri.parse(file.path))?.use { stream ->
-                            val options = BitmapFactory.Options().apply { inSampleSize = 4 }
-                            val bitmap = BitmapFactory.decodeStream(stream, null, options)
-                            if (bitmap != null) BitmapCache.put(file.path, bitmap)
-                        }
-                    } catch (_: Exception) {}
-                }
-            }
-        }
     }
 }

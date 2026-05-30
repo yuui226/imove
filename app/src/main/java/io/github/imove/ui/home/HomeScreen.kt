@@ -16,6 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.FolderOpen
+import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.Usb
@@ -44,7 +45,9 @@ fun HomeScreen(
     connectedDevice: StorageDevice?,
     isDetecting: Boolean,
     isRestoring: Boolean,
+    targetDirectory: String,
     onSelectSourceDirectory: () -> Unit,
+    onSetTargetDirectory: () -> Unit,
     onTransferToday: () -> Unit,
     onTransferThreeDays: () -> Unit,
     onTransferTenDays: () -> Unit,
@@ -144,6 +147,33 @@ fun HomeScreen(
                 )
                 Spacer(modifier = Modifier.height(24.dp))
                 Button(onClick = onSelectSourceDirectory) {
+                    Icon(Icons.Default.FolderOpen, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(stringResource(R.string.select_directory))
+                }
+            }
+        } else if (targetDirectory.isEmpty()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Save,
+                    contentDescription = null,
+                    modifier = Modifier.size(64.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = stringResource(R.string.set_export_dir),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(24.dp))
+                Button(onClick = onSetTargetDirectory) {
                     Icon(Icons.Default.FolderOpen, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(stringResource(R.string.select_directory))

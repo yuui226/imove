@@ -16,17 +16,10 @@
     <string name="light">浅色</string>
     <string name="dark">深色</string>
     <string name="move">Move</string>
-    <string name="transfer_complete">传输完成</string>
-    <string name="transfer_interrupted">传输中断</string>
     <string name="loading">加载中...</string>
     <string name="scanning_files">正在扫描文件...</string>
     <string name="no_media_found">未找到媒体文件</string>
     <string name="total_files">共 %d 个文件</string>
-    <string name="transfer_photos">正在传输照片</string>
-    <string name="transfer_progress_detail">已传输 %1$d/%2$d，队列等待 %3$d 个</string>
-    <string name="transfer_result">成功 %1$d 个，跳过 %2$d 个，失败 %3$d 个</string>
-    <string name="transfer_channel_name">文件传输</string>
-    <string name="transfer_channel_desc">显示文件传输进度</string>
     <string name="video">视频</string>
     <string name="transferred">已传输</string>
     <string name="save_location">保存位置</string>
@@ -39,6 +32,7 @@
     <string name="restoring_config">正在恢复设备配置...</string>
     <string name="connected">已连接</string>
     <string name="select_photo_dir">请选择设备上的照片/视频目录</string>
+    <string name="set_export_dir">请先设置导出目录</string>
     <string name="change_directory">更换目录</string>
     <string name="queue_title">传输队列 (%d)</string>
     <string name="copy_failed">复制失败: %1$s - %2$s</string>

@@ -42,13 +42,19 @@ fun NavGraph(navController: NavHostController, storageAccessManager: StorageAcce
                 }
             }
 
+            val targetDirectory by viewModel.targetDirectory.collectAsState()
+
             HomeScreen(
                 connectedDevice = connectedDevice,
                 isDetecting = isDetecting,
                 isRestoring = isRestoring,
+                targetDirectory = targetDirectory,
                 onSelectSourceDirectory = {
                     val intent = storageAccessManager.createOpenDocumentTreeIntent()
                     directoryPickerLauncher.launch(intent)
+                },
+                onSetTargetDirectory = {
+                    navController.navigate(Screen.Settings.route)
                 },
                 onTransferToday = {
                     navController.navigate(Screen.Transfer.createRoute("today"))

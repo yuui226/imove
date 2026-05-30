@@ -39,13 +39,23 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import coil.ImageLoader
+import coil.request.ImageRequest
 import io.github.imove.R
 import io.github.imove.domain.model.MediaFile
 import io.github.imove.ui.components.MediaThumbnail
 import io.github.imove.util.DateUtils
 import io.github.imove.viewmodel.TransferViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.joinAll
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
+import kotlinx.coroutines.withContext
 
 private sealed class GridItem {
     data class Header(val label: String, val files: List<MediaFile>) : GridItem()
@@ -92,28 +102,35 @@ fun TransferScreen(
         }
     }
 
-    LaunchedEffect(files) {
-        if (files.isNotEmpty()) {
-            viewModel.preloadImages(0)
-        }
-    }
-    LaunchedEffect(gridState) {
-        snapshotFlow { gridState.firstVisibleItemIndex }
-            .collect { index ->
-                val half = files.size / 2
-                if (half > 0 && index >= half) {
-                    viewModel.preloadImages(half)
-                }
-            }
-    }
-    LaunchedEffect(gridState) {
+    // Coil prefetch: on scroll stop, concurrently load upcoming images into memory cache
+    val context = LocalContext.current
+    val imageLoader = remember { (context.applicationContext as coil.ImageLoaderFactory).newImageLoader() }
+    LaunchedEffect(gridState, files) {
+        var lastPrefetchIndex = -1
         snapshotFlow { gridState.isScrollInProgress }
-            .collect { scrolling ->
-                if (!scrolling) {
+            .collectLatest { scrolling ->
+                if (!scrolling && files.isNotEmpty()) {
                     val index = gridState.firstVisibleItemIndex
-                    val target = index + 50
-                    if (target < files.size) {
-                        viewModel.preloadImages(target)
+                    if (index == lastPrefetchIndex) return@collectLatest
+                    lastPrefetchIndex = index
+                    val start = index
+                    val end = (start + 160).coerceAtMost(files.size)
+                    val semaphore = Semaphore(8)
+                    withContext(Dispatchers.IO) {
+                        (start until end).map { i ->
+                            launch {
+                                val uri = files[i].path
+                                // Skip if already in memory cache
+                                if (imageLoader.memoryCache?.get(coil.memory.MemoryCache.Key(uri)) != null) return@launch
+                                semaphore.withPermit {
+                                    val request = ImageRequest.Builder(context)
+                                        .data(uri)
+                                        .size(384, 384)
+                                        .build()
+                                    imageLoader.execute(request)
+                                }
+                            }
+                        }.joinAll()
                     }
                 }
             }

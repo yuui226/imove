@@ -3,11 +3,36 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <group
-        android:translateX="22"
-        android:translateY="22">
-        <path
-            android:fillColor="#FFFFFF"
-            android:pathData="M32,0 L32,64 L0,64 L0,0 Z M32,16 L16,32 L16,48 L32,32 Z M64,0 L64,64 L32,64 L32,0 Z M64,16 L48,32 L48,48 L64,32 Z" />
-    </group>
+
+    <!-- Arrow shaft (wider rounded rect, r=4 top, r=2 bottom) -->
+    <path
+        android:fillColor="#1565C0"
+        android:pathData="M44,30
+                          L64,30
+                          Q68,30 68,34
+                          L68,58
+                          Q68,60 66,60
+                          L42,60
+                          Q40,60 40,58
+                          L40,34
+                          Q40,30 44,30 Z" />
+
+    <!-- Mountain cutout (white, three peaks, middle highest, base aligned with shaft/arrowhead boundary) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M40,56
+                          L47,46
+                          L50,50
+                          L54,38
+                          L58,50
+                          L61,44
+                          L68,56 Z" />
+
+    <!-- Arrow head (wider, r=2 rounded tip) -->
+    <path
+        android:fillColor="#1565C0"
+        android:pathData="M34,56
+                          L52.4,80
+                          Q54,84 55.6,80
+                          L74,56 Z" />
 </vector>
