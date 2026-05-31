@@ -109,16 +109,17 @@ fun TransferScreen(
         snapshotFlow { gridState.isScrollInProgress }
             .collectLatest { scrolling ->
                 if (!scrolling && files.isNotEmpty()) {
+                    val snapshot = files.toList()  // local copy, won't change mid-iteration
                     val index = gridState.firstVisibleItemIndex
                     if (index == lastPrefetchIndex) return@collectLatest
                     lastPrefetchIndex = index
-                    val start = index
-                    val end = (start + 160).coerceAtMost(files.size)
+                    val start = index.coerceIn(snapshot.indices)
+                    val end = (start + 160).coerceAtMost(snapshot.size)
                     val semaphore = Semaphore(8)
                     withContext(Dispatchers.IO) {
                         (start until end).map { i ->
                             launch {
-                                val uri = files[i].path
+                                val uri = snapshot[i].path
                                 // Skip if already in memory cache
                                 if (imageLoader.memoryCache?.get(coil.memory.MemoryCache.Key(uri)) != null) return@launch
                                 semaphore.withPermit {

@@ -26,11 +26,7 @@ class MediaRepositoryImpl @Inject constructor(
 ) : MediaRepository {
 
     override fun getFilesFromDevice(device: StorageDevice): Flow<List<MediaFile>> =
-        scanDirectory(device.sourcePath, 0, 0)
-
-    override suspend fun isFileTransferred(fileName: String, deviceId: String): Boolean {
-        return transferredFileDao.exists(fileName, deviceId)
-    }
+        scanDirectory(device.sourcePath)
 
     override suspend fun markAsTransferred(file: MediaFile, deviceId: String) {
         transferredFileDao.insert(
@@ -44,11 +40,7 @@ class MediaRepositoryImpl @Inject constructor(
         )
     }
 
-    private fun scanDirectory(
-        treeUri: String,
-        dateStart: Long,
-        dateEnd: Long
-    ): Flow<List<MediaFile>> = flow {
+    private fun scanDirectory(treeUri: String): Flow<List<MediaFile>> = flow {
         val uri = Uri.parse(treeUri)
         val treeDocId = try {
             DocumentsContract.getTreeDocumentId(uri)
@@ -61,7 +53,6 @@ class MediaRepositoryImpl @Inject constructor(
             return@flow
         }
 
-        val hasDateFilter = dateStart > 0 && dateEnd > 0
         val files = mutableListOf<MediaFile>()
         val childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(uri, treeDocId)
 
@@ -92,9 +83,6 @@ class MediaRepositoryImpl @Inject constructor(
                     if (mime == DocumentsContract.Document.MIME_TYPE_DIR) continue
                     if (!FileUtils.isMediaFile(name)) continue
 
-                    val modified = cursor.getLong(modifiedCol)
-                    if (hasDateFilter && (modified < dateStart || modified > dateEnd)) continue
-
                     val docUri = DocumentsContract.buildDocumentUriUsingTree(uri, docId)
                     files.add(
                         MediaFile(
@@ -103,8 +91,8 @@ class MediaRepositoryImpl @Inject constructor(
                             path = docUri.toString(),
                             size = cursor.getLong(sizeCol),
                             mimeType = mime,
-                            dateTaken = modified,
-                            dateModified = modified,
+                            dateTaken = cursor.getLong(modifiedCol),
+                            dateModified = cursor.getLong(modifiedCol),
                             isVideo = FileUtils.isVideo(name)
                         )
                     )

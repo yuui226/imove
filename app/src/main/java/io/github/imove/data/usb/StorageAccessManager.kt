@@ -41,9 +41,4 @@ class StorageAccessManager @Inject constructor(
         )
     }
 
-    fun getVolumeUuidFromUri(uri: Uri): String? {
-        val docId = DocumentsContract.getTreeDocumentId(uri) ?: return null
-        // Format: "primary:", "uuid:", etc.
-        return docId.substringBefore(':').takeIf { it != "primary" }
-    }
 }

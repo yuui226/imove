@@ -6,7 +6,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.imove.domain.model.UserPreferences
-import io.github.imove.domain.repository.DeviceRepository
 import io.github.imove.domain.repository.UserPreferencesRepository
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -16,8 +15,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
-    private val preferencesRepository: UserPreferencesRepository,
-    private val deviceRepository: DeviceRepository
+    private val preferencesRepository: UserPreferencesRepository
 ) : ViewModel() {
 
     val preferences: StateFlow<UserPreferences> = preferencesRepository.getPreferences()
@@ -50,9 +48,5 @@ class SettingsViewModel @Inject constructor(
             else -> AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
         }
         AppCompatDelegate.setDefaultNightMode(nightMode)
-    }
-
-    fun updateSourcePath(deviceId: String, path: String) {
-        viewModelScope.launch { deviceRepository.updateSourcePath(deviceId, path) }
     }
 }

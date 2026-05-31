@@ -52,34 +52,13 @@ class PreviewViewModel @Inject constructor(
         _currentIndex.value = index.coerceIn(0, (files.value.size - 1).coerceAtLeast(0))
     }
 
-    fun moveToNext() {
-        if (_currentIndex.value < files.value.size - 1) {
-            _currentIndex.value++
-        }
-    }
-
-    fun moveToPrevious() {
-        if (_currentIndex.value > 0) {
-            _currentIndex.value--
-        }
-    }
-
     fun moveCurrentToQueue() {
         val file = files.value.getOrNull(_currentIndex.value) ?: return
         transferRepository.addToQueue(listOf(file))
         _justQueued.value = _justQueued.value + file.id
     }
 
-    fun isCurrentQueued(): Boolean {
-        val file = files.value.getOrNull(_currentIndex.value) ?: return false
-        return _justQueued.value.contains(file.id) ||
-                file.id in queuedFileIds.value
-    }
-
     fun cleanJustQueued(transferred: Set<String>) {
         _justQueued.value = _justQueued.value - transferred
     }
-
-    fun getCurrentFile(): MediaFile? = files.value.getOrNull(_currentIndex.value)
-    fun getTotalFiles(): Int = files.value.size
 }

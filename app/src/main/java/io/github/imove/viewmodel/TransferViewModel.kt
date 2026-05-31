@@ -24,7 +24,6 @@ class TransferViewModel @Inject constructor(
     private val filesStore: LoadedFilesStore
 ) : ViewModel() {
 
-    val allFiles: StateFlow<List<MediaFile>> = filesStore.allFiles
     val displayFiles: StateFlow<List<MediaFile>> = filesStore.displayFiles
     val isLoading: StateFlow<Boolean> = filesStore.isLoading
 
@@ -63,11 +62,4 @@ class TransferViewModel @Inject constructor(
         if (pending.isNotEmpty()) transferRepository.addToQueue(pending)
     }
 
-    fun removeFromQueue(itemId: String) {
-        transferRepository.removeFromQueue(itemId)
-    }
-
-    fun clearQueue() {
-        transferRepository.clearQueue()
-    }
 }

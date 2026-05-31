@@ -114,14 +114,12 @@ class TransferRepositoryImpl @Inject constructor(
             val dst = context.contentResolver.openOutputStream(destUri)
                 ?: throw Exception(context.getString(R.string.error_write_dest, destUri.toString()))
 
-            var bytes = 0L
             BufferedInputStream(src, BUFFER_SIZE).use { input ->
                 BufferedOutputStream(dst, BUFFER_SIZE).use { output ->
                     val buf = ByteArray(BUFFER_SIZE)
                     var read: Int
                     while (input.read(buf).also { read = it } != -1) {
                         output.write(buf, 0, read)
-                        bytes += read
                     }
                 }
             }
@@ -141,20 +139,6 @@ class TransferRepositoryImpl @Inject constructor(
 
     override fun getQueue(): Flow<List<TransferItem>> = _queue.asStateFlow()
     override fun getTransferredFileIds(): StateFlow<Set<String>> = _transferredFileIds.asStateFlow()
-
-    override fun removeFromQueue(itemId: String) {
-        _queue.update { it.filterNot { item -> item.id == itemId } }
-    }
-
-    override fun clearQueue() {
-        _queue.update { it.filter { item -> item.status == TransferStatus.TRANSFERRING } }
-    }
-
-    override fun cancelTransfer() {
-        activeJobs.values.forEach { it.cancel() }
-        activeJobs.clear()
-        _queue.update { emptyList() }
-    }
 
     override fun clearTransferredIds() {
         _transferredFileIds.value = emptySet()

@@ -25,7 +25,6 @@ class LoadedFilesStore @Inject constructor(
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     private val _allFiles = MutableStateFlow<List<MediaFile>>(emptyList())
-    val allFiles: StateFlow<List<MediaFile>> = _allFiles.asStateFlow()
 
     private val _displayMode = MutableStateFlow("latest_day")
 
@@ -49,8 +48,6 @@ class LoadedFilesStore @Inject constructor(
 
     @Volatile
     private var loadedDeviceId: String? = null
-
-    fun isLoaded(): Boolean = loaded && _allFiles.value.isNotEmpty()
 
     fun reset() {
         loaded = false
