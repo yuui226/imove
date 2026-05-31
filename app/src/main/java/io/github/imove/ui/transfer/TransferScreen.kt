@@ -115,7 +115,7 @@ fun TransferScreen(
                     lastPrefetchIndex = index
                     val start = index.coerceIn(snapshot.indices)
                     val end = (start + 160).coerceAtMost(snapshot.size)
-                    val semaphore = Semaphore(8)
+                    val semaphore = Semaphore(4)
                     withContext(Dispatchers.IO) {
                         (start until end).map { i ->
                             launch {

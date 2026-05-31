@@ -25,7 +25,7 @@ object ImageModule {
         return ImageLoader.Builder(context)
             .crossfade(false)
             .allowHardware(true)
-            .dispatcher(Dispatchers.IO.limitedParallelism(8))
+            .dispatcher(Dispatchers.IO.limitedParallelism(4))
             .bitmapConfig(Bitmap.Config.RGB_565)
             .memoryCache {
                 MemoryCache.Builder(context)
