@@ -42,7 +42,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import coil.ImageLoader
 import coil.request.ImageRequest
 import io.github.imove.R
 import io.github.imove.domain.model.MediaFile
@@ -80,7 +79,7 @@ fun TransferScreen(
     LaunchedEffect(queue.size) {
         if (prevQueueSize > 0 && queue.isEmpty()) {
             showDone = true
-            kotlinx.coroutines.delay(500)
+            kotlinx.coroutines.delay(3000)
             showDone = false
         }
         prevQueueSize = queue.size

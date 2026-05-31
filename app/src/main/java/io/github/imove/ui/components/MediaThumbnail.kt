@@ -16,6 +16,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -50,12 +51,16 @@ fun MediaThumbnail(
                 onLongClick = onLongClick
             )
     ) {
-        AsyncImage(
-            model = ImageRequest.Builder(LocalContext.current)
+        val context = LocalContext.current
+        val imageRequest = remember(file.path) {
+            ImageRequest.Builder(context)
                 .data(file.path)
                 .size(384, 384)
                 .scale(Scale.FILL)
-                .build(),
+                .build()
+        }
+        AsyncImage(
+            model = imageRequest,
             contentDescription = file.name,
             contentScale = ContentScale.Crop,
             modifier = Modifier
