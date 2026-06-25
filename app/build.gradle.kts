@@ -22,7 +22,11 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true          // R8: tree-shake unused code (e.g. unused Material icons)
+            isShrinkResources = true        // remove unused resources
+            // Debug-signed so the release APK is directly installable for testing.
+            // Swap to a real keystore before publishing to Play.
+            signingConfig = signingConfigs.getByName("debug")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
