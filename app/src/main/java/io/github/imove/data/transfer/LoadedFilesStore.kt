@@ -31,8 +31,7 @@ class LoadedFilesStore @Inject constructor(
     val displayFiles: StateFlow<List<MediaFile>> = combine(
         _allFiles, _displayMode
     ) { files, mode ->
-        if (files.isEmpty()) emptyList()
-        else when (mode) {
+        when (mode) {
             "latest_day" -> filterByRecentDays(files, 1)
             "three_days" -> filterByRecentDays(files, 3)
             "ten_days" -> filterByRecentDays(files, 10)

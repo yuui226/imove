@@ -88,7 +88,6 @@ dependencies {
     implementation("androidx.core:core-ktx:1.15.0")
     implementation("androidx.appcompat:appcompat:1.7.0")
     implementation("androidx.documentfile:documentfile:1.0.1")
-    implementation("androidx.exifinterface:exifinterface:1.3.7")
 
     // Testing
     testImplementation("org.junit.jupiter:junit-jupiter:5.11.4")

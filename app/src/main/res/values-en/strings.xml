@@ -32,12 +32,10 @@
     <string name="back">Back</string>
     <string name="preview_photo">Preview photo</string>
     <string name="add_to_queue">Add to queue</string>
-    <string name="detecting_device">Detecting device...</string>
     <string name="restoring_config">Restoring device config...</string>
     <string name="connected">Connected</string>
     <string name="select_photo_dir">Select photo/video directory on device</string>
     <string name="change_directory">Change directory</string>
-    <string name="queue_title">Transfer queue (%d)</string>
     <string name="copy_failed">Copy failed: %1$s - %2$s</string>
     <string name="error_no_target_dir">Target directory not set</string>
     <string name="error_invalid_target">Invalid target directory</string>

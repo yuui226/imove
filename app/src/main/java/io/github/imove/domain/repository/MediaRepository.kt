@@ -6,5 +6,4 @@ import kotlinx.coroutines.flow.Flow
 
 interface MediaRepository {
     fun getFilesFromDevice(device: StorageDevice): Flow<List<MediaFile>>
-    suspend fun markAsTransferred(file: MediaFile, deviceId: String)
 }

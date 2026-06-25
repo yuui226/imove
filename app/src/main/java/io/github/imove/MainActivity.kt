@@ -4,9 +4,12 @@ import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.core.os.LocaleListCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.rememberNavController
+import kotlinx.coroutines.flow.map
 import dagger.hilt.android.AndroidEntryPoint
 import io.github.imove.data.usb.StorageAccessManager
 import io.github.imove.domain.repository.UserPreferencesRepository
@@ -32,7 +35,10 @@ class MainActivity : AppCompatActivity() {
             AppCompatDelegate.setApplicationLocales(localeList)
         }
         setContent {
-            IMoveTheme {
+            val darkMode by preferencesRepository.getPreferences()
+                .map { it.darkMode }
+                .collectAsState(initial = "system")
+            IMoveTheme(darkMode = darkMode) {
                 val navController = rememberNavController()
                 NavGraph(navController = navController, storageAccessManager = storageAccessManager)
             }

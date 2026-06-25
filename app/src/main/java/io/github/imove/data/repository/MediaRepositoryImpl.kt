@@ -5,8 +5,6 @@ import android.net.Uri
 import android.provider.DocumentsContract
 import android.util.Log
 import dagger.hilt.android.qualifiers.ApplicationContext
-import io.github.imove.data.local.database.dao.TransferredFileDao
-import io.github.imove.data.local.database.entity.TransferredFileEntity
 import io.github.imove.domain.model.MediaFile
 import io.github.imove.domain.model.StorageDevice
 import io.github.imove.domain.repository.MediaRepository
@@ -15,30 +13,16 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
-import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class MediaRepositoryImpl @Inject constructor(
-    @ApplicationContext private val context: Context,
-    private val transferredFileDao: TransferredFileDao
+    @ApplicationContext private val context: Context
 ) : MediaRepository {
 
     override fun getFilesFromDevice(device: StorageDevice): Flow<List<MediaFile>> =
         scanDirectory(device.sourcePath)
-
-    override suspend fun markAsTransferred(file: MediaFile, deviceId: String) {
-        transferredFileDao.insert(
-            TransferredFileEntity(
-                id = UUID.randomUUID().toString(),
-                fileName = file.name,
-                sourceDeviceId = deviceId,
-                transferredAt = System.currentTimeMillis(),
-                destinationPath = file.path
-            )
-        )
-    }
 
     private fun scanDirectory(treeUri: String): Flow<List<MediaFile>> = flow {
         val uri = Uri.parse(treeUri)
@@ -62,7 +46,6 @@ class MediaRepositoryImpl @Inject constructor(
                 arrayOf(
                     DocumentsContract.Document.COLUMN_DOCUMENT_ID,
                     DocumentsContract.Document.COLUMN_DISPLAY_NAME,
-                    DocumentsContract.Document.COLUMN_SIZE,
                     DocumentsContract.Document.COLUMN_MIME_TYPE,
                     DocumentsContract.Document.COLUMN_LAST_MODIFIED
                 ),
@@ -70,7 +53,6 @@ class MediaRepositoryImpl @Inject constructor(
             )?.use { cursor ->
                 val idCol = cursor.getColumnIndex(DocumentsContract.Document.COLUMN_DOCUMENT_ID)
                 val nameCol = cursor.getColumnIndex(DocumentsContract.Document.COLUMN_DISPLAY_NAME)
-                val sizeCol = cursor.getColumnIndex(DocumentsContract.Document.COLUMN_SIZE)
                 val mimeCol = cursor.getColumnIndex(DocumentsContract.Document.COLUMN_MIME_TYPE)
                 val modifiedCol = cursor.getColumnIndex(DocumentsContract.Document.COLUMN_LAST_MODIFIED)
 
@@ -89,7 +71,6 @@ class MediaRepositoryImpl @Inject constructor(
                             id = docId,
                             name = name,
                             path = docUri.toString(),
-                            size = cursor.getLong(sizeCol),
                             mimeType = mime,
                             dateTaken = cursor.getLong(modifiedCol),
                             dateModified = cursor.getLong(modifiedCol),

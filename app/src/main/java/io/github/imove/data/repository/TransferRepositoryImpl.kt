@@ -11,7 +11,6 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import io.github.imove.domain.model.MediaFile
 import io.github.imove.domain.model.TransferItem
 import io.github.imove.domain.model.TransferStatus
-import io.github.imove.domain.repository.MediaRepository
 import io.github.imove.domain.repository.TransferRepository
 import io.github.imove.domain.repository.UserPreferencesRepository
 import kotlinx.coroutines.CoroutineScope
@@ -37,9 +36,7 @@ import javax.inject.Singleton
 @Singleton
 class TransferRepositoryImpl @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val mediaRepository: MediaRepository,
-    private val preferencesRepository: UserPreferencesRepository,
-    private val usbDeviceManager: io.github.imove.data.usb.UsbDeviceManager
+    private val preferencesRepository: UserPreferencesRepository
 ) : TransferRepository {
 
     companion object {
@@ -67,8 +64,7 @@ class TransferRepositoryImpl @Inject constructor(
             TransferItem(
                 id = UUID.randomUUID().toString(),
                 file = file,
-                status = TransferStatus.QUEUED,
-                addedAt = System.currentTimeMillis()
+                status = TransferStatus.QUEUED
             )
         }
         _queue.update { it + newItems }
@@ -124,8 +120,6 @@ class TransferRepositoryImpl @Inject constructor(
                 }
             }
 
-            val deviceId = usbDeviceManager.connectedDevice.value?.id ?: ""
-            mediaRepository.markAsTransferred(item.file, deviceId)
             _transferredFileIds.update { it + item.file.id }
             _queue.update { list -> list.filter { it.id != item.id } }
         } catch (e: Exception) {

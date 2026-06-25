@@ -41,12 +41,7 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun updateDarkMode(mode: String) {
+        // The Compose theme observes this preference directly (see IMoveTheme); no AppCompat night-mode needed.
         viewModelScope.launch { preferencesRepository.updateDarkMode(mode) }
-        val nightMode = when (mode) {
-            "light" -> AppCompatDelegate.MODE_NIGHT_NO
-            "dark" -> AppCompatDelegate.MODE_NIGHT_YES
-            else -> AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
-        }
-        AppCompatDelegate.setDefaultNightMode(nightMode)
     }
 }

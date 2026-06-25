@@ -32,12 +32,10 @@
     <string name="back">返回</string>
     <string name="preview_photo">预览照片</string>
     <string name="add_to_queue">加入队列</string>
-    <string name="detecting_device">正在检测设备...</string>
     <string name="restoring_config">正在恢复设备配置...</string>
     <string name="connected">已连接</string>
     <string name="select_photo_dir">请选择设备上的照片/视频目录</string>
     <string name="change_directory">更换目录</string>
-    <string name="queue_title">传输队列 (%d)</string>
     <string name="copy_failed">复制失败: %1$s - %2$s</string>
     <string name="error_no_target_dir">未设置目标目录</string>
     <string name="error_invalid_target">目标目录无效</string>

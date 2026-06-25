@@ -9,7 +9,7 @@ object FileUtils {
         return ext in VIDEO_EXTENSIONS
     }
 
-    fun isImage(fileName: String): Boolean {
+    private fun isImage(fileName: String): Boolean {
         val ext = fileName.substringAfterLast('.', "").lowercase()
         return ext in IMAGE_EXTENSIONS
     }
