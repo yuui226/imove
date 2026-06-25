@@ -70,3 +70,34 @@ Kotlin · Jetpack Compose · Material 3 · Hilt · Room · Coil · MVVM
 ```
 
 产出路径：`app/build/outputs/apk/debug/app-debug.apk`
+
+### 安装到手机（无线调试）
+
+无需数据线，手机与电脑在同一 WiFi 下即可。
+
+1. 手机开启：设置 → 开发者选项 → **无线调试** → 打开
+2. 进入「无线调试」→ **使用配对码配对设备**，会显示一个 `IP:配对端口` 和 6 位配对码
+3. 电脑上配对（注意：配对端口与下一步的连接端口**不是同一个**）：
+
+   ```powershell
+   adb pair 192.168.1.156:42047 848037     # 换成你手机显示的 IP:配对端口 配对码
+   ```
+
+4. 回到「无线调试」主界面，顶部的 **IP 地址和端口**就是连接端口，连接它：
+
+   ```powershell
+   adb connect 192.168.1.156:38881         # 换成主界面显示的 IP:连接端口
+   adb devices                             # 应能看到设备处于 device 状态
+   ```
+
+5. 安装 APK：
+
+   ```powershell
+   adb install -r app\build\outputs\apk\debug\app-debug.apk
+   ```
+
+> **签名冲突**：若报 `INSTALL_FAILED_UPDATE_INCOMPATIBLE`（手机上已装过用其它密钥签名的同名应用，如换电脑后 debug 签名变了），先卸载再装：
+> ```powershell
+> adb uninstall io.github.imove
+> ```
+> 注意卸载会清除该应用在手机上的本地数据。
