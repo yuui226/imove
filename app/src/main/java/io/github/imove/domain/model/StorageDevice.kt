@@ -6,4 +6,11 @@ data class StorageDevice(
     val volumeLabel: String,
     val sourcePath: String,
     val lastConnected: Long
-)
+) {
+    /** True when this represents a folder picked from local phone storage rather than a USB device. */
+    val isLocal: Boolean get() = id == LOCAL_DEVICE_ID
+
+    companion object {
+        const val LOCAL_DEVICE_ID = "local"
+    }
+}

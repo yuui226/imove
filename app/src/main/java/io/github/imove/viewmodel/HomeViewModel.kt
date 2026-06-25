@@ -1,6 +1,7 @@
 package io.github.imove.viewmodel
 
 import android.net.Uri
+import android.provider.DocumentsContract
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -27,7 +28,7 @@ class HomeViewModel @Inject constructor(
     private val storageAccessManager: StorageAccessManager,
     private val filesStore: LoadedFilesStore,
     private val transferRepository: TransferRepository,
-    preferencesRepository: UserPreferencesRepository
+    private val preferencesRepository: UserPreferencesRepository
 ) : ViewModel() {
 
     val connectedDevice = usbDeviceManager.connectedDevice
@@ -84,16 +85,45 @@ class HomeViewModel @Inject constructor(
     }
 
     fun saveSourcePath(uri: Uri) {
-        val device = connectedDevice.value ?: return
         storageAccessManager.takePersistablePermission(uri)
         // Store full tree URI so MediaRepository can parse it for SAF queries
         val sourcePath = uri.toString()
+        val device = connectedDevice.value
+        if (device == null) {
+            // No physical device connected: treat the picked folder as a local source.
+            val localDevice = StorageDevice(
+                id = StorageDevice.LOCAL_DEVICE_ID,
+                volumeUuid = StorageDevice.LOCAL_DEVICE_ID,
+                volumeLabel = localFolderLabel(uri),
+                sourcePath = sourcePath,
+                lastConnected = System.currentTimeMillis()
+            )
+            viewModelScope.launch {
+                deviceRepository.saveDevice(localDevice)
+                usbDeviceManager.updateConnectedDevice(localDevice)
+            }
+            return
+        }
         viewModelScope.launch {
             val existing = deviceRepository.getDeviceByVolume(device.volumeUuid)
             val updated = (existing ?: device).copy(sourcePath = sourcePath)
             deviceRepository.saveDevice(updated)
             usbDeviceManager.updateConnectedDevice(updated)
         }
+    }
+
+    /** Derive a readable label from a tree URI, e.g. "primary:DCIM/Camera" -> "Camera". */
+    private fun localFolderLabel(uri: Uri): String {
+        val docId = runCatching { DocumentsContract.getTreeDocumentId(uri) }.getOrNull()
+        return docId
+            ?.substringAfterLast('/')
+            ?.substringAfterLast(':')
+            ?.takeIf { it.isNotBlank() }
+            ?: "Local"
+    }
+
+    fun updateTargetDirectory(path: String) {
+        viewModelScope.launch { preferencesRepository.updateTargetDirectory(path) }
     }
 
     override fun onCleared() {

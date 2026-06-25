@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">iMove</string>
-    <string name="connect_device">请连接存储设备</string>
+    <string name="connect_device">请插入存储设备</string>
+    <string name="internal_storage">内部存储</string>
     <string name="transfer_today">近一日</string>
     <string name="transfer_three_days">近三日</string>
     <string name="transfer_ten_days">近十日</string>
@@ -22,9 +23,12 @@
     <string name="total_files">共 %d 个文件</string>
     <string name="video">视频</string>
     <string name="transferred">已传输</string>
-    <string name="save_location">保存位置</string>
+    <string name="save_location">保存目录</string>
     <string name="not_set">未设置</string>
     <string name="select_directory">选择目录</string>
+    <string name="select_local_directory">选择本地目录</string>
+    <string name="select_save_directory">选择保存目录</string>
+    <string name="or_label">或</string>
     <string name="back">返回</string>
     <string name="preview_photo">预览照片</string>
     <string name="add_to_queue">加入队列</string>
@@ -32,7 +36,7 @@
     <string name="restoring_config">正在恢复设备配置...</string>
     <string name="connected">已连接</string>
     <string name="select_photo_dir">请选择设备上的照片/视频目录</string>
-    <string name="set_export_dir">请先设置导出目录</string>
+    <string name="set_export_dir">请先设置保存目录</string>
     <string name="change_directory">更换目录</string>
     <string name="queue_title">传输队列 (%d)</string>
     <string name="copy_failed">复制失败: %1$s - %2$s</string>

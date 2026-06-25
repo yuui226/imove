@@ -1,7 +1,12 @@
 package io.github.imove.ui.home
 
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -24,20 +29,27 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.colorResource
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.shape.RoundedCornerShape
 import io.github.imove.R
 import io.github.imove.domain.model.StorageDevice
 import io.github.imove.ui.components.TransferModeCard
+import io.github.imove.ui.util.readableTreePath
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -66,51 +78,11 @@ fun HomeScreen(
             )
         }
     ) { padding ->
-        if (connectedDevice == null && isDetecting) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                CircularProgressIndicator(modifier = Modifier.size(48.dp))
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = stringResource(R.string.detecting_device),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        } else if (connectedDevice == null) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Usb,
-                    contentDescription = null,
-                    modifier = Modifier.size(64.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = stringResource(R.string.connect_device),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        } else if (connectedDevice.sourcePath.isEmpty() && isRestoring) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
+        val device = connectedDevice
+
+        if (device != null && !device.isLocal && device.sourcePath.isEmpty() && isRestoring) {
+            // USB device connected, restoring its saved configuration
+            CenteredColumn(padding) {
                 CircularProgressIndicator(modifier = Modifier.size(48.dp))
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
@@ -119,14 +91,9 @@ fun HomeScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-        } else if (connectedDevice.sourcePath.isEmpty()) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
+        } else if (device != null && !device.isLocal && device.sourcePath.isEmpty()) {
+            // USB device connected, pick the photo/video directory on the device
+            CenteredColumn(padding) {
                 Icon(
                     imageVector = Icons.Default.FolderOpen,
                     contentDescription = null,
@@ -135,7 +102,7 @@ fun HomeScreen(
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = "${stringResource(R.string.connected)}: ${connectedDevice.volumeLabel}",
+                    text = "${stringResource(R.string.connected)}: ${device.volumeLabel}",
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface
                 )
@@ -152,34 +119,13 @@ fun HomeScreen(
                     Text(stringResource(R.string.select_directory))
                 }
             }
-        } else if (targetDirectory.isEmpty()) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Save,
-                    contentDescription = null,
-                    modifier = Modifier.size(64.dp),
-                    tint = MaterialTheme.colorScheme.primary
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = stringResource(R.string.set_export_dir),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(24.dp))
-                Button(onClick = onSetTargetDirectory) {
-                    Icon(Icons.Default.FolderOpen, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(stringResource(R.string.select_directory))
-                }
+        } else if (device != null && device.sourcePath.isNotEmpty() && targetDirectory.isNotEmpty()) {
+            // Source + save folder both ready -> the card grid
+            val sourceLabel = if (device.isLocal) {
+                readableTreePath(device.sourcePath, stringResource(R.string.internal_storage))
+            } else {
+                device.volumeLabel
             }
-        } else {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -236,7 +182,7 @@ fun HomeScreen(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = connectedDevice.volumeLabel,
+                        text = sourceLabel,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.weight(1f)
@@ -252,6 +198,112 @@ fun HomeScreen(
                     }
                 }
             }
+        } else if (device != null && !device.isLocal && targetDirectory.isEmpty()) {
+            // USB source set, only the save folder is still missing
+            CenteredColumn(padding) {
+                Button(onClick = onSetTargetDirectory) {
+                    Icon(Icons.Default.Save, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(stringResource(R.string.select_save_directory))
+                }
+            }
+        } else {
+            // No USB device: unified setup screen (pick a local source and/or a save folder)
+            CenteredColumn(padding) {
+                Box(
+                    modifier = Modifier
+                        .size(96.dp)
+                        .clip(RoundedCornerShape(24.dp))
+                        .background(colorResource(R.color.ic_launcher_background)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Image(
+                        painter = painterResource(R.drawable.ic_launcher_foreground),
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+                Spacer(modifier = Modifier.height(32.dp))
+
+                val groupWidth = 240.dp
+
+                // Group 1: pick a source — insert a USB device OR choose a local folder
+                OutlinedButton(
+                    onClick = {},
+                    modifier = Modifier.width(groupWidth)
+                ) {
+                    if (isDetecting) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Icon(Icons.Default.Usb, contentDescription = null)
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(stringResource(R.string.connect_device))
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = stringResource(R.string.or_label),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedButton(
+                    onClick = onSelectSourceDirectory,
+                    modifier = Modifier.width(groupWidth)
+                ) {
+                    Icon(Icons.Default.FolderOpen, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(stringResource(R.string.select_local_directory))
+                }
+                if (device != null && device.isLocal) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = readableTreePath(device.sourcePath, stringResource(R.string.internal_storage)),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(28.dp))
+                HorizontalDivider(modifier = Modifier.width(groupWidth))
+                Spacer(modifier = Modifier.height(28.dp))
+
+                // Group 2: pick where files are saved
+                Button(
+                    onClick = onSetTargetDirectory,
+                    modifier = Modifier.width(groupWidth)
+                ) {
+                    Icon(Icons.Default.Save, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(stringResource(R.string.select_save_directory))
+                }
+                if (targetDirectory.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = readableTreePath(targetDirectory, stringResource(R.string.internal_storage)),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
         }
     }
+}
+
+@Composable
+private fun CenteredColumn(
+    padding: PaddingValues,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(padding),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+        content = content
+    )
 }

@@ -1,12 +1,14 @@
 package io.github.imove.ui.navigation
 
 import android.app.Activity
+import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -32,12 +34,28 @@ fun NavGraph(navController: NavHostController, storageAccessManager: StorageAcce
             val isDetecting by viewModel.isDetecting.collectAsState()
             val isRestoring by viewModel.isRestoring.collectAsState()
 
+            val context = LocalContext.current
+
             val directoryPickerLauncher = rememberLauncherForActivityResult(
                 contract = ActivityResultContracts.StartActivityForResult()
             ) { result ->
                 if (result.resultCode == Activity.RESULT_OK) {
                     result.data?.data?.let { uri ->
                         viewModel.saveSourcePath(uri)
+                    }
+                }
+            }
+
+            val targetDirPickerLauncher = rememberLauncherForActivityResult(
+                contract = ActivityResultContracts.StartActivityForResult()
+            ) { result ->
+                if (result.resultCode == Activity.RESULT_OK) {
+                    result.data?.data?.let { uri ->
+                        context.contentResolver.takePersistableUriPermission(
+                            uri,
+                            Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                        )
+                        viewModel.updateTargetDirectory(uri.toString())
                     }
                 }
             }
@@ -54,7 +72,12 @@ fun NavGraph(navController: NavHostController, storageAccessManager: StorageAcce
                     directoryPickerLauncher.launch(intent)
                 },
                 onSetTargetDirectory = {
-                    navController.navigate(Screen.Settings.route)
+                    val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).apply {
+                        flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or
+                                Intent.FLAG_GRANT_WRITE_URI_PERMISSION or
+                                Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION
+                    }
+                    targetDirPickerLauncher.launch(intent)
                 },
                 onTransferToday = {
                     navController.navigate(Screen.Transfer.createRoute("today"))

@@ -28,6 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import io.github.imove.R
+import io.github.imove.ui.util.readableTreePath
 import io.github.imove.viewmodel.SettingsViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -76,7 +77,7 @@ fun SettingsScreen(
                 supportingContent = {
                     Text(
                         text = if (preferences.targetDirectory.isBlank()) stringResource(R.string.not_set)
-                        else preferences.targetDirectory.substringAfterLast('/').ifBlank { preferences.targetDirectory },
+                        else readableTreePath(preferences.targetDirectory, stringResource(R.string.internal_storage)),
                         style = MaterialTheme.typography.bodySmall
                     )
                 },
