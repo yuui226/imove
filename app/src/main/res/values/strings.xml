@@ -23,6 +23,7 @@
     <string name="total_files">共 %d 个文件</string>
     <string name="video">视频</string>
     <string name="transferred">已传输</string>
+    <string name="transfer_failed_retry">传输失败，点击重试</string>
     <string name="save_location">保存目录</string>
     <string name="not_set">未设置</string>
     <string name="select_directory">选择目录</string>

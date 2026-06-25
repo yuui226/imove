@@ -9,5 +9,6 @@ interface TransferRepository {
     fun addToQueue(files: List<MediaFile>)
     fun getQueue(): Flow<List<TransferItem>>
     fun getTransferredFileIds(): StateFlow<Set<String>>
+    fun getFailedFileIds(): StateFlow<Set<String>>
     fun clearTransferredIds()
 }

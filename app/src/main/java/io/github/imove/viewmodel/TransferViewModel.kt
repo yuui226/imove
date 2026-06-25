@@ -29,6 +29,8 @@ class TransferViewModel @Inject constructor(
 
     val transferredIds: StateFlow<Set<String>> = transferRepository.getTransferredFileIds()
 
+    val failedIds: StateFlow<Set<String>> = transferRepository.getFailedFileIds()
+
     val queue: StateFlow<List<TransferItem>> = transferRepository.getQueue()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 

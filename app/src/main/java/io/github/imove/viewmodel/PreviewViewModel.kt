@@ -37,6 +37,8 @@ class PreviewViewModel @Inject constructor(
 
     val transferredIds: StateFlow<Set<String>> = transferRepository.getTransferredFileIds()
 
+    val failedIds: StateFlow<Set<String>> = transferRepository.getFailedFileIds()
+
     private val _justQueued = MutableStateFlow<Set<String>>(emptySet())
     val justQueued: StateFlow<Set<String>> = _justQueued.asStateFlow()
 

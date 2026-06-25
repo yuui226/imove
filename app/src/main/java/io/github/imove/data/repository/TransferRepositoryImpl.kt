@@ -15,7 +15,6 @@ import io.github.imove.domain.repository.TransferRepository
 import io.github.imove.domain.repository.UserPreferencesRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -46,10 +45,10 @@ class TransferRepositoryImpl @Inject constructor(
 
     private val _queue = MutableStateFlow<List<TransferItem>>(emptyList())
     private val _transferredFileIds = MutableStateFlow<Set<String>>(emptySet())
+    private val _failedFileIds = MutableStateFlow<Set<String>>(emptySet())
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val mainHandler = Handler(Looper.getMainLooper())
     private val copySemaphore = Semaphore(6)
-    private val activeJobs = mutableMapOf<String, Job>()
 
     @Volatile private var cachedTargetUri: Uri? = null
     @Volatile private var cachedTreeDoc: DocumentFile? = null
@@ -60,29 +59,39 @@ class TransferRepositoryImpl @Inject constructor(
     }
 
     override fun addToQueue(files: List<MediaFile>) {
-        val newItems = files.map { file ->
-            TransferItem(
-                id = UUID.randomUUID().toString(),
-                file = file,
-                status = TransferStatus.QUEUED
-            )
-        }
+        // Centralized de-dup: skip files already queued/transferring or already transferred,
+        // so every entry point (grid tap, date-group button, preview FAB) is covered.
+        val existingFileIds = _queue.value.mapTo(mutableSetOf()) { it.file.id }
+        val transferred = _transferredFileIds.value
+        val newItems = files
+            .distinctBy { it.id }
+            .filter { it.id !in existingFileIds && it.id !in transferred }
+            .map { file ->
+                TransferItem(
+                    id = UUID.randomUUID().toString(),
+                    file = file,
+                    status = TransferStatus.QUEUED
+                )
+            }
+        if (newItems.isEmpty()) return
+        // Re-queueing a previously-failed file clears its failed mark (this is the retry path).
+        _failedFileIds.update { it - newItems.map { item -> item.file.id }.toSet() }
         _queue.update { it + newItems }
         for (item in newItems) {
-            val job = scope.launch {
+            scope.launch {
                 copySemaphore.withPermit { copyFile(item) }
             }
-            job.invokeOnCompletion { activeJobs.remove(item.id) }
-            activeJobs[item.id] = job
         }
     }
 
     private suspend fun resolveTargetDir(): Pair<Uri, DocumentFile> {
-        cachedTreeDoc?.let { doc -> cachedTargetUri?.let { uri -> return Pair(uri, doc) } }
         val prefs = preferencesRepository.getPreferences().first()
         val targetDir = prefs.targetDirectory
         if (targetDir.isBlank()) throw Exception(context.getString(R.string.error_no_target_dir))
         val uri = Uri.parse(targetDir)
+        // Reuse the cached DocumentFile only when it still points at the current target.
+        // Without this check, changing the save location in Settings has no effect until restart.
+        cachedTreeDoc?.let { doc -> if (cachedTargetUri == uri) return Pair(uri, doc) }
         if (uri.scheme != "content") throw Exception(context.getString(R.string.error_invalid_target))
         val doc = DocumentFile.fromTreeUri(context, uri)
             ?: throw Exception(context.getString(R.string.error_cannot_write_target))
@@ -125,16 +134,19 @@ class TransferRepositoryImpl @Inject constructor(
         } catch (e: Exception) {
             Log.e(TAG, "Failed: $fileName", e)
             toast(context.getString(R.string.copy_failed, fileName, e.message ?: ""))
-            _queue.update { list ->
-                list.map { if (it.id == item.id) it.copy(status = TransferStatus.FAILED) else it }
-            }
+            // Drop the failed item out of the active queue and mark it failed, so the queue
+            // count / "Done" state stay correct and the file can be retried by tapping it again.
+            _failedFileIds.update { it + item.file.id }
+            _queue.update { list -> list.filter { it.id != item.id } }
         }
     }
 
     override fun getQueue(): Flow<List<TransferItem>> = _queue.asStateFlow()
     override fun getTransferredFileIds(): StateFlow<Set<String>> = _transferredFileIds.asStateFlow()
+    override fun getFailedFileIds(): StateFlow<Set<String>> = _failedFileIds.asStateFlow()
 
     override fun clearTransferredIds() {
         _transferredFileIds.value = emptySet()
+        _failedFileIds.value = emptySet()
     }
 }

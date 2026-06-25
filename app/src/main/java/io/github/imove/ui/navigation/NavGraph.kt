@@ -30,9 +30,8 @@ fun NavGraph(navController: NavHostController, storageAccessManager: StorageAcce
     NavHost(navController = navController, startDestination = Screen.Home.route) {
         composable(Screen.Home.route) {
             val viewModel: HomeViewModel = hiltViewModel()
-            val connectedDevice by viewModel.connectedDevice.collectAsState()
+            val uiState by viewModel.uiState.collectAsState()
             val isDetecting by viewModel.isDetecting.collectAsState()
-            val isRestoring by viewModel.isRestoring.collectAsState()
 
             val context = LocalContext.current
 
@@ -60,13 +59,9 @@ fun NavGraph(navController: NavHostController, storageAccessManager: StorageAcce
                 }
             }
 
-            val targetDirectory by viewModel.targetDirectory.collectAsState()
-
             HomeScreen(
-                connectedDevice = connectedDevice,
+                state = uiState,
                 isDetecting = isDetecting,
-                isRestoring = isRestoring,
-                targetDirectory = targetDirectory,
                 onSelectSourceDirectory = {
                     val intent = storageAccessManager.createOpenDocumentTreeIntent()
                     directoryPickerLauncher.launch(intent)

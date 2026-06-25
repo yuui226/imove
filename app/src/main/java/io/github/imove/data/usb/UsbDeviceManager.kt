@@ -74,6 +74,10 @@ class UsbDeviceManager @Inject constructor(
     }
 
     fun detectStorageVolumes() {
+        // Once the user has manually picked a local folder, stop letting USB detection
+        // (delayed retries or attach broadcasts) clobber that selection.
+        if (_connectedDevice.value?.isLocal == true) return
+
         val storageManager = context.getSystemService(Context.STORAGE_SERVICE) as StorageManager
         val volumes = storageManager.storageVolumes
 

@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -37,11 +38,13 @@ fun MediaThumbnail(
     file: MediaFile,
     transferredIds: Set<String>,
     queuedFileIds: Set<String>,
+    failedFileIds: Set<String>,
     onClick: () -> Unit,
     onLongClick: (() -> Unit)? = null
 ) {
     val isTransferred = file.id in transferredIds
     val isQueued = file.id in queuedFileIds
+    val isFailed = file.id in failedFileIds
 
     Box(
         modifier = Modifier
@@ -106,6 +109,18 @@ fun MediaThumbnail(
                     style = MaterialTheme.typography.bodySmall
                 )
             }
+        }
+
+        if (isFailed) {
+            Icon(
+                imageVector = Icons.Default.ErrorOutline,
+                contentDescription = stringResource(R.string.transfer_failed_retry),
+                tint = Color(0xFFE53935),
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(4.dp)
+                    .size(20.dp)
+            )
         }
     }
 }

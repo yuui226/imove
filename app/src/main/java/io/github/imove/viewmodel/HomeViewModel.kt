@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -41,7 +42,26 @@ class HomeViewModel @Inject constructor(
     val isDetecting: StateFlow<Boolean> = _isDetecting.asStateFlow()
 
     private val _isRestoring = MutableStateFlow(false)
-    val isRestoring: StateFlow<Boolean> = _isRestoring.asStateFlow()
+
+    val uiState: StateFlow<HomeUiState> = combine(
+        usbDeviceManager.connectedDevice, _isRestoring, targetDirectory
+    ) { device, isRestoring, target ->
+        when {
+            device != null && !device.isLocal && device.sourcePath.isEmpty() && isRestoring ->
+                HomeUiState.Restoring
+            device != null && !device.isLocal && device.sourcePath.isEmpty() ->
+                HomeUiState.PickSource(device.volumeLabel)
+            device != null && device.sourcePath.isNotEmpty() && target.isNotEmpty() ->
+                HomeUiState.Ready(device.isLocal, device.sourcePath, device.volumeLabel)
+            device != null && !device.isLocal && target.isEmpty() ->
+                HomeUiState.NeedTarget
+            else ->
+                HomeUiState.Setup(
+                    localSourcePath = device?.takeIf { it.isLocal }?.sourcePath,
+                    targetDirectory = target
+                )
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), HomeUiState.Setup(null, ""))
 
     init {
         usbDeviceManager.startListening()

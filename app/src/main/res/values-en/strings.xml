@@ -23,6 +23,7 @@
     <string name="total_files">%d files total</string>
     <string name="video">Video</string>
     <string name="transferred">Transferred</string>
+    <string name="transfer_failed_retry">Transfer failed, tap to retry</string>
     <string name="save_location">Save folder</string>
     <string name="not_set">Not set</string>
     <string name="select_directory">Select directory</string>

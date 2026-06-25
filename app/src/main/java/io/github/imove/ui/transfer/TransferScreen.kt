@@ -73,6 +73,7 @@ fun TransferScreen(
     val queue by viewModel.queue.collectAsState()
     val transferredIds by viewModel.transferredIds.collectAsState()
     val queuedFileIds by viewModel.queuedFileIds.collectAsState()
+    val failedIds by viewModel.failedIds.collectAsState()
 
     var showDone by remember { mutableStateOf(false) }
     var prevQueueSize by remember { mutableStateOf(queue.size) }
@@ -91,10 +92,10 @@ fun TransferScreen(
     val gridItems = remember(files) {
         buildList {
             val grouped = files.groupBy { file ->
-                DateUtils.getDayKey(file.dateTaken.takeIf { it > 0 } ?: file.dateModified)
+                DateUtils.getDayKey(file.dateModified)
             }
             grouped.forEach { (_, group) ->
-                val representativeDate = group.first().dateTaken.takeIf { it > 0 } ?: group.first().dateModified
+                val representativeDate = group.first().dateModified
                 add(GridItem.Header(DateUtils.formatDateHeader(representativeDate), group))
                 group.forEach { add(GridItem.File(it)) }
             }
@@ -248,6 +249,7 @@ fun TransferScreen(
                                             file = file,
                                             transferredIds = transferredIds,
                                             queuedFileIds = queuedFileIds,
+                                            failedFileIds = failedIds,
                                             onClick = onClick,
                                             onLongClick = onLongClick
                                         )

@@ -45,12 +45,16 @@ class LoadedFilesStore @Inject constructor(
     @Volatile
     private var loaded = false
 
+    // Key on device id + source path: the same USB device keeps its id when the user
+    // picks a different folder, so keying on id alone would skip rescanning the new folder.
     @Volatile
-    private var loadedDeviceId: String? = null
+    private var loadedKey: String? = null
+
+    private fun keyOf(device: StorageDevice) = "${device.id}|${device.sourcePath}"
 
     fun reset() {
         loaded = false
-        loadedDeviceId = null
+        loadedKey = null
         _allFiles.value = emptyList()
     }
 
@@ -59,9 +63,11 @@ class LoadedFilesStore @Inject constructor(
     }
 
     fun loadAllFiles(device: StorageDevice) {
-        if (device.id != loadedDeviceId) {
+        val key = keyOf(device)
+        if (key != loadedKey) {
             loaded = false
-            loadedDeviceId = null
+            loadedKey = null
+            _allFiles.value = emptyList()
         }
         if (loaded || _isLoading.value) return
         _isLoading.value = true
@@ -69,10 +75,10 @@ class LoadedFilesStore @Inject constructor(
             try {
                 mediaRepository.getFilesFromDevice(device).collect { files ->
                     _allFiles.value = files
-                    if (files.isNotEmpty()) {
-                        loaded = true
-                        loadedDeviceId = device.id
-                    }
+                    // Mark loaded even for an empty result so a genuinely empty folder
+                    // isn't re-scanned on every navigation. Failures keep loaded=false (see catch).
+                    loaded = true
+                    loadedKey = key
                     Log.d("LoadedFilesStore", "Loaded ${files.size} files")
                 }
             } catch (e: Exception) {
@@ -85,14 +91,13 @@ class LoadedFilesStore @Inject constructor(
 
     private fun filterByRecentDays(files: List<MediaFile>, days: Int): List<MediaFile> {
         val dayKeys = files
-            .map { DateUtils.getDayKey(it.dateTaken.takeIf { d -> d > 0 } ?: it.dateModified) }
+            .map { DateUtils.getDayKey(it.dateModified) }
             .distinct()
             .sortedDescending()
             .take(days)
             .toSet()
         return files.filter { file ->
-            val date = file.dateTaken.takeIf { d -> d > 0 } ?: file.dateModified
-            DateUtils.getDayKey(date) in dayKeys
+            DateUtils.getDayKey(file.dateModified) in dayKeys
         }
     }
 }

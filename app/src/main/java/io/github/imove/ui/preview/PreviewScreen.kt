@@ -16,6 +16,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
@@ -28,6 +29,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -60,6 +62,7 @@ fun PreviewScreen(
     val currentIndex by viewModel.currentIndex.collectAsState()
     val queuedFileIds by viewModel.queuedFileIds.collectAsState()
     val transferredIds by viewModel.transferredIds.collectAsState()
+    val failedIds by viewModel.failedIds.collectAsState()
     val justQueued by viewModel.justQueued.collectAsState()
 
     if (currentIndex < 0 || files.isEmpty()) {
@@ -131,7 +134,8 @@ fun PreviewScreen(
         ) { page ->
             val file = files[page]
             val isTransferred = file.id in transferredIds
-            val isQueued = !isTransferred && (justQueued.contains(file.id) || file.id in queuedFileIds)
+            val isFailed = !isTransferred && file.id in failedIds
+            val isQueued = !isTransferred && !isFailed && (justQueued.contains(file.id) || file.id in queuedFileIds)
 
             Box(
                 modifier = Modifier.fillMaxSize(),
@@ -227,6 +231,17 @@ fun PreviewScreen(
                             .size(32.dp)
                     )
                 }
+                if (isFailed) {
+                    Icon(
+                        imageVector = Icons.Default.ErrorOutline,
+                        contentDescription = stringResource(R.string.transfer_failed_retry),
+                        tint = Color(0xFFE53935),
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(16.dp)
+                            .size(32.dp)
+                    )
+                }
             }
         }
     }
@@ -234,20 +249,24 @@ fun PreviewScreen(
 
 @Composable
 private fun VideoPlayer(uri: String, modifier: Modifier = Modifier) {
-    AndroidView(
-        modifier = modifier,
-        factory = { ctx ->
-            VideoView(ctx).apply {
-                val controller = MediaController(ctx)
-                controller.setAnchorView(this)
-                setMediaController(controller)
-                setVideoURI(Uri.parse(uri))
-                setOnPreparedListener { mp ->
-                    mp.isLooping = false
-                    start()
+    // key(uri): recreate the VideoView only when the video actually changes. Putting the URI
+    // in an update{} block instead would re-set it on every recomposition and restart playback.
+    key(uri) {
+        AndroidView(
+            modifier = modifier,
+            factory = { ctx ->
+                VideoView(ctx).apply {
+                    val controller = MediaController(ctx)
+                    controller.setAnchorView(this)
+                    setMediaController(controller)
+                    setVideoURI(Uri.parse(uri))
+                    setOnPreparedListener { mp ->
+                        mp.isLooping = false
+                        start()
+                    }
                 }
-            }
-        },
-        onRelease = { it.stopPlayback() }
-    )
+            },
+            onRelease = { it.stopPlayback() }
+        )
+    }
 }

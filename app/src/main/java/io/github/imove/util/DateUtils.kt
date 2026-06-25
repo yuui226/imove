@@ -1,15 +1,19 @@
 package io.github.imove.util
 
-import java.text.SimpleDateFormat
-import java.util.Date
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 object DateUtils {
-    private val dayKeyFormat = SimpleDateFormat("yyyyMMdd", Locale.getDefault())
+    // DateTimeFormatter is immutable and thread-safe, unlike SimpleDateFormat —
+    // these are called concurrently from the IO filtering flow and the Compose main thread.
+    private val dayKeyFormat = DateTimeFormatter.ofPattern("yyyyMMdd", Locale.getDefault())
+    private val headerFormat = DateTimeFormatter.ofPattern("yyyy-M-d", Locale.US)
 
-    fun getDayKey(timestamp: Long): String = dayKeyFormat.format(Date(timestamp))
+    fun getDayKey(timestamp: Long): String =
+        dayKeyFormat.format(Instant.ofEpochMilli(timestamp).atZone(ZoneId.systemDefault()))
 
-    private val headerFormat = SimpleDateFormat("yyyy-M-d", Locale.US)
-
-    fun formatDateHeader(timestamp: Long): String = headerFormat.format(Date(timestamp))
+    fun formatDateHeader(timestamp: Long): String =
+        headerFormat.format(Instant.ofEpochMilli(timestamp).atZone(ZoneId.systemDefault()))
 }

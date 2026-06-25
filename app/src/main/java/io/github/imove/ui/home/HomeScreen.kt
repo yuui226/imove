@@ -47,17 +47,15 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.shape.RoundedCornerShape
 import io.github.imove.R
-import io.github.imove.domain.model.StorageDevice
 import io.github.imove.ui.components.TransferModeCard
 import io.github.imove.ui.util.readableTreePath
+import io.github.imove.viewmodel.HomeUiState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    connectedDevice: StorageDevice?,
+    state: HomeUiState,
     isDetecting: Boolean,
-    isRestoring: Boolean,
-    targetDirectory: String,
     onSelectSourceDirectory: () -> Unit,
     onSetTargetDirectory: () -> Unit,
     onTransferToday: () -> Unit,
@@ -78,11 +76,8 @@ fun HomeScreen(
             )
         }
     ) { padding ->
-        val device = connectedDevice
-
-        if (device != null && !device.isLocal && device.sourcePath.isEmpty() && isRestoring) {
-            // USB device connected, restoring its saved configuration
-            CenteredColumn(padding) {
+        when (state) {
+            is HomeUiState.Restoring -> CenteredColumn(padding) {
                 CircularProgressIndicator(modifier = Modifier.size(48.dp))
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
@@ -91,9 +86,8 @@ fun HomeScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-        } else if (device != null && !device.isLocal && device.sourcePath.isEmpty()) {
-            // USB device connected, pick the photo/video directory on the device
-            CenteredColumn(padding) {
+
+            is HomeUiState.PickSource -> CenteredColumn(padding) {
                 Icon(
                     imageVector = Icons.Default.FolderOpen,
                     contentDescription = null,
@@ -102,7 +96,7 @@ fun HomeScreen(
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = "${stringResource(R.string.connected)}: ${device.volumeLabel}",
+                    text = "${stringResource(R.string.connected)}: ${state.deviceLabel}",
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface
                 )
@@ -119,93 +113,92 @@ fun HomeScreen(
                     Text(stringResource(R.string.select_directory))
                 }
             }
-        } else if (device != null && device.sourcePath.isNotEmpty() && targetDirectory.isNotEmpty()) {
-            // Source + save folder both ready -> the card grid
-            val sourceLabel = if (device.isLocal) {
-                readableTreePath(device.sourcePath, stringResource(R.string.internal_storage))
-            } else {
-                device.volumeLabel
-            }
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-            ) {
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(1),
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    item {
-                        TransferModeCard(
-                            icon = Icons.Default.CalendarToday,
-                            label = stringResource(R.string.transfer_today),
-                            onClick = onTransferToday
-                        )
-                    }
-                    item {
-                        TransferModeCard(
-                            icon = Icons.Default.DateRange,
-                            label = stringResource(R.string.transfer_three_days),
-                            onClick = onTransferThreeDays
-                        )
-                    }
-                    item {
-                        TransferModeCard(
-                            icon = Icons.Default.DateRange,
-                            label = stringResource(R.string.transfer_ten_days),
-                            onClick = onTransferTenDays
-                        )
-                    }
-                    item {
-                        TransferModeCard(
-                            icon = Icons.Default.FolderOpen,
-                            label = stringResource(R.string.transfer_custom),
-                            onClick = onTransferCustom
-                        )
-                    }
+
+            is HomeUiState.Ready -> {
+                val sourceLabel = if (state.isLocalSource) {
+                    readableTreePath(state.sourcePath, stringResource(R.string.internal_storage))
+                } else {
+                    state.volumeLabel
                 }
-                // Source directory info + change button
-                Row(
+                Column(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                        .fillMaxSize()
+                        .padding(padding)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.FolderOpen,
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = sourceLabel,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.weight(1f)
-                    )
-                    TextButton(onClick = onSelectSourceDirectory) {
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(1),
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        item {
+                            TransferModeCard(
+                                icon = Icons.Default.CalendarToday,
+                                label = stringResource(R.string.transfer_today),
+                                onClick = onTransferToday
+                            )
+                        }
+                        item {
+                            TransferModeCard(
+                                icon = Icons.Default.DateRange,
+                                label = stringResource(R.string.transfer_three_days),
+                                onClick = onTransferThreeDays
+                            )
+                        }
+                        item {
+                            TransferModeCard(
+                                icon = Icons.Default.DateRange,
+                                label = stringResource(R.string.transfer_ten_days),
+                                onClick = onTransferTenDays
+                            )
+                        }
+                        item {
+                            TransferModeCard(
+                                icon = Icons.Default.FolderOpen,
+                                label = stringResource(R.string.transfer_custom),
+                                onClick = onTransferCustom
+                            )
+                        }
+                    }
+                    // Source directory info + change button
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Icon(
-                            imageVector = Icons.Default.SwapHoriz,
+                            imageVector = Icons.Default.FolderOpen,
                             contentDescription = null,
-                            modifier = Modifier.size(18.dp)
+                            modifier = Modifier.size(20.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(stringResource(R.string.change_directory))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = sourceLabel,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.weight(1f)
+                        )
+                        TextButton(onClick = onSelectSourceDirectory) {
+                            Icon(
+                                imageVector = Icons.Default.SwapHoriz,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(stringResource(R.string.change_directory))
+                        }
                     }
                 }
             }
-        } else if (device != null && !device.isLocal && targetDirectory.isEmpty()) {
-            // USB source set, only the save folder is still missing
-            CenteredColumn(padding) {
+
+            is HomeUiState.NeedTarget -> CenteredColumn(padding) {
                 SaveDirectoryButton(onClick = onSetTargetDirectory)
             }
-        } else {
-            // No USB device: unified setup screen (pick a local source and/or a save folder)
-            CenteredColumn(padding) {
+
+            is HomeUiState.Setup -> CenteredColumn(padding) {
                 Box(
                     modifier = Modifier
                         .size(96.dp)
@@ -254,10 +247,10 @@ fun HomeScreen(
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(stringResource(R.string.select_local_directory))
                 }
-                if (device != null && device.isLocal) {
+                if (state.localSourcePath != null) {
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = readableTreePath(device.sourcePath, stringResource(R.string.internal_storage)),
+                        text = readableTreePath(state.localSourcePath, stringResource(R.string.internal_storage)),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -272,10 +265,10 @@ fun HomeScreen(
                     onClick = onSetTargetDirectory,
                     modifier = Modifier.width(groupWidth)
                 )
-                if (targetDirectory.isNotEmpty()) {
+                if (state.targetDirectory.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = readableTreePath(targetDirectory, stringResource(R.string.internal_storage)),
+                        text = readableTreePath(state.targetDirectory, stringResource(R.string.internal_storage)),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

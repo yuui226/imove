@@ -8,7 +8,6 @@ data class MediaFile(
     val name: String,
     val path: String,
     val mimeType: String,
-    val dateTaken: Long,
     val dateModified: Long,
     val isVideo: Boolean
 )

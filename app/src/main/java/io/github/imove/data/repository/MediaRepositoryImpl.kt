@@ -72,7 +72,6 @@ class MediaRepositoryImpl @Inject constructor(
                             name = name,
                             path = docUri.toString(),
                             mimeType = mime,
-                            dateTaken = cursor.getLong(modifiedCol),
                             dateModified = cursor.getLong(modifiedCol),
                             isVideo = FileUtils.isVideo(name)
                         )
