@@ -64,12 +64,17 @@ Kotlin · Jetpack Compose · Material 3 · Hilt · Room · Coil · MVVM
 
 ### 打包
 
+直接运行 Gradle（无需参数），默认产出经 R8 裁剪的 **release** 包（约 3MB）：
+
 ```powershell
-.\gradlew.bat assembleDebug      # Windows
-./gradlew assembleDebug          # macOS / Linux
+.\gradlew.bat        # Windows
+./gradlew            # macOS / Linux
 ```
 
-产出路径：`app/build/outputs/apk/debug/app-debug.apk`
+产出路径：`app/build/outputs/apk/release/app-release.apk`
+
+> release 当前用 debug 签名以便直接安装；上架前请替换为正式密钥。
+> 需要调试包时显式指定：`.\gradlew.bat assembleDebug`（产出 `app/build/outputs/apk/debug/app-debug.apk`）。
 
 ### 安装到手机（无线调试）
 

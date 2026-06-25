@@ -5,3 +5,6 @@ plugins {
     id("com.google.dagger.hilt.android") version "2.53.1" apply false
     id("com.google.devtools.ksp") version "2.1.0-1.0.29" apply false
 }
+
+// Running `gradlew` with no task defaults to building the slim release APK.
+defaultTasks("assembleRelease")
