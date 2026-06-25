@@ -42,10 +42,31 @@
 
 Kotlin · Jetpack Compose · Material 3 · Hilt · Room · Coil · MVVM
 
-## 构建
+## 开发与构建
 
-```bash
-./gradlew assembleDebug
+### 首次环境搭建（Windows）
+
+全新电脑上，在项目根目录跑一次安装脚本即可自动准备好打包环境：
+
+```powershell
+.\setup.ps1            # 加 -Build 可装完顺手打一个 debug 包验证
+```
+
+脚本会自动完成（全部装在 `D:\dev` 下，无需管理员权限）：
+
+- 下载安装 **JDK 17**（清华 Adoptium 镜像）
+- 下载安装 **Android SDK**：命令行工具 + Platform 35 + Build-Tools 35 + Platform-Tools（腾讯云镜像）
+- 生成 `local.properties`，设置 `JAVA_HOME` / `ANDROID_HOME` 等永久环境变量
+
+> Gradle 本体与 Maven 依赖的镜像源已分别配在 `gradle-wrapper.properties`、`settings.gradle.kts`（腾讯 / 阿里）。
+> 脚本默认装到 `D:\dev`，可用 `.\setup.ps1 -InstallRoot E:\dev` 自定义位置。
+> 安装的永久环境变量需**重开终端**后才在新窗口生效。
+
+### 打包
+
+```powershell
+.\gradlew.bat assembleDebug      # Windows
+./gradlew assembleDebug          # macOS / Linux
 ```
 
 产出路径：`app/build/outputs/apk/debug/app-debug.apk`
