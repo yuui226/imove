@@ -16,7 +16,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
@@ -39,7 +38,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.viewinterop.AndroidView
+import android.net.Uri
 import android.os.SystemClock
+import android.widget.MediaController
+import android.widget.VideoView
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -130,67 +133,69 @@ fun PreviewScreen(
             val isTransferred = file.id in transferredIds
             val isQueued = !isTransferred && (justQueued.contains(file.id) || file.id in queuedFileIds)
 
-            var scale by remember(page) { mutableFloatStateOf(1f) }
-            var offsetX by remember(page) { mutableFloatStateOf(0f) }
-            var offsetY by remember(page) { mutableFloatStateOf(0f) }
-
             Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .pointerInput(page) {
-                        var lastTapTime = 0L
-                        awaitEachGesture {
-                            awaitFirstDown()
-                            val now = SystemClock.uptimeMillis()
-                            val isDoubleTap = now - lastTapTime < 300L
-                            lastTapTime = now
-                            if (isDoubleTap) {
-                                scale = 1f
-                                offsetX = 0f
-                                offsetY = 0f
-                            }
-                            do {
-                                val event = awaitPointerEvent()
-                                val zoom = event.calculateZoom()
-                                val pan = event.calculatePan()
-                                val newScale = (scale * zoom).coerceIn(1f, 5f)
-                                if (newScale > 1f) {
-                                    scale = newScale
-                                    offsetX += pan.x
-                                    offsetY += pan.y
-                                    event.changes.forEach { it.consume() }
-                                } else if (scale > 1f) {
-                                    scale = newScale
-                                    offsetX = 0f
-                                    offsetY = 0f
-                                }
-                            } while (event.changes.any { it.pressed })
-                        }
-                    },
+                modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
-                AsyncImage(
-                    model = file.path,
-                    contentDescription = file.name,
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .graphicsLayer {
-                            scaleX = scale
-                            scaleY = scale
-                            translationX = offsetX
-                            translationY = offsetY
-                        }
-                )
                 if (file.isVideo) {
-                    Icon(
-                        imageVector = Icons.Default.PlayArrow,
-                        contentDescription = stringResource(R.string.video),
-                        modifier = Modifier
-                            .align(Alignment.Center)
-                            .fillMaxSize(0.2f),
-                        tint = MaterialTheme.colorScheme.primary
+                    VideoPlayer(
+                        uri = file.path,
+                        modifier = Modifier.fillMaxSize()
                     )
+                } else {
+                    var scale by remember(page) { mutableFloatStateOf(1f) }
+                    var offsetX by remember(page) { mutableFloatStateOf(0f) }
+                    var offsetY by remember(page) { mutableFloatStateOf(0f) }
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .pointerInput(page) {
+                                var lastTapTime = 0L
+                                awaitEachGesture {
+                                    awaitFirstDown()
+                                    val now = SystemClock.uptimeMillis()
+                                    val isDoubleTap = now - lastTapTime < 300L
+                                    lastTapTime = now
+                                    if (isDoubleTap) {
+                                        scale = 1f
+                                        offsetX = 0f
+                                        offsetY = 0f
+                                    }
+                                    do {
+                                        val event = awaitPointerEvent()
+                                        val zoom = event.calculateZoom()
+                                        val pan = event.calculatePan()
+                                        val newScale = (scale * zoom).coerceIn(1f, 5f)
+                                        if (newScale > 1f) {
+                                            scale = newScale
+                                            offsetX += pan.x
+                                            offsetY += pan.y
+                                            event.changes.forEach { it.consume() }
+                                        } else if (scale > 1f) {
+                                            scale = newScale
+                                            offsetX = 0f
+                                            offsetY = 0f
+                                        }
+                                    } while (event.changes.any { it.pressed })
+                                }
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        AsyncImage(
+                            model = file.path,
+                            contentDescription = file.name,
+                            contentScale = ContentScale.Fit,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .graphicsLayer {
+                                    scaleX = scale
+                                    scaleY = scale
+                                    translationX = offsetX
+                                    translationY = offsetY
+                                }
+                        )
+                    }
                 }
                 if (isQueued) {
                     Box(
@@ -225,4 +230,24 @@ fun PreviewScreen(
             }
         }
     }
+}
+
+@Composable
+private fun VideoPlayer(uri: String, modifier: Modifier = Modifier) {
+    AndroidView(
+        modifier = modifier,
+        factory = { ctx ->
+            VideoView(ctx).apply {
+                val controller = MediaController(ctx)
+                controller.setAnchorView(this)
+                setMediaController(controller)
+                setVideoURI(Uri.parse(uri))
+                setOnPreparedListener { mp ->
+                    mp.isLooping = false
+                    start()
+                }
+            }
+        },
+        onRelease = { it.stopPlayback() }
+    )
 }

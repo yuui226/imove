@@ -3,6 +3,7 @@ package io.github.imove.di
 import android.content.Context
 import android.graphics.Bitmap
 import coil.ImageLoader
+import coil.decode.VideoFrameDecoder
 import coil.disk.DiskCache
 import coil.memory.MemoryCache
 import dagger.Module
@@ -27,6 +28,10 @@ object ImageModule {
             .allowHardware(true)
             .dispatcher(Dispatchers.IO.limitedParallelism(4))
             .bitmapConfig(Bitmap.Config.RGB_565)
+            .components {
+                // Decode the first frame of video files so they show a cover thumbnail
+                add(VideoFrameDecoder.Factory())
+            }
             .memoryCache {
                 MemoryCache.Builder(context)
                     .maxSizePercent(0.50)

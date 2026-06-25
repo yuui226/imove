@@ -36,7 +36,6 @@
     <string name="restoring_config">正在恢复设备配置...</string>
     <string name="connected">已连接</string>
     <string name="select_photo_dir">请选择设备上的照片/视频目录</string>
-    <string name="set_export_dir">请先设置保存目录</string>
     <string name="change_directory">更换目录</string>
     <string name="queue_title">传输队列 (%d)</string>
     <string name="copy_failed">复制失败: %1$s - %2$s</string>

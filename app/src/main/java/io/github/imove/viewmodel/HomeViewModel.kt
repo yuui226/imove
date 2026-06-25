@@ -91,6 +91,7 @@ class HomeViewModel @Inject constructor(
         val device = connectedDevice.value
         if (device == null) {
             // No physical device connected: treat the picked folder as a local source.
+            // Intentionally not persisted — a local folder only lasts for the current session.
             val localDevice = StorageDevice(
                 id = StorageDevice.LOCAL_DEVICE_ID,
                 volumeUuid = StorageDevice.LOCAL_DEVICE_ID,
@@ -98,10 +99,7 @@ class HomeViewModel @Inject constructor(
                 sourcePath = sourcePath,
                 lastConnected = System.currentTimeMillis()
             )
-            viewModelScope.launch {
-                deviceRepository.saveDevice(localDevice)
-                usbDeviceManager.updateConnectedDevice(localDevice)
-            }
+            usbDeviceManager.updateConnectedDevice(localDevice)
             return
         }
         viewModelScope.launch {
