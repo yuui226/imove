@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">iMove</string>
-    <string name="connect_device">Please insert a storage device</string>
+    <string name="connect_device">Insert a storage device</string>
     <string name="internal_storage">Internal storage</string>
     <string name="transfer_today">Last Day</string>
     <string name="transfer_three_days">Last 3 Days</string>

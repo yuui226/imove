@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.Usb
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -200,11 +201,7 @@ fun HomeScreen(
         } else if (device != null && !device.isLocal && targetDirectory.isEmpty()) {
             // USB source set, only the save folder is still missing
             CenteredColumn(padding) {
-                Button(onClick = onSetTargetDirectory) {
-                    Icon(Icons.Default.Save, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(stringResource(R.string.select_save_directory))
-                }
+                SaveDirectoryButton(onClick = onSetTargetDirectory)
             }
         } else {
             // No USB device: unified setup screen (pick a local source and/or a save folder)
@@ -213,7 +210,7 @@ fun HomeScreen(
                     modifier = Modifier
                         .size(96.dp)
                         .clip(RoundedCornerShape(24.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Image(
@@ -271,14 +268,10 @@ fun HomeScreen(
                 Spacer(modifier = Modifier.height(28.dp))
 
                 // Group 2: pick where files are saved
-                Button(
+                SaveDirectoryButton(
                     onClick = onSetTargetDirectory,
                     modifier = Modifier.width(groupWidth)
-                ) {
-                    Icon(Icons.Default.Save, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(stringResource(R.string.select_save_directory))
-                }
+                )
                 if (targetDirectory.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
@@ -289,6 +282,23 @@ fun HomeScreen(
                 }
             }
         }
+    }
+}
+
+/** Medium-emphasis save-folder action, using a soft tonal blue that isn't glaring in dark mode. */
+@Composable
+private fun SaveDirectoryButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Button(
+        onClick = onClick,
+        modifier = modifier,
+        colors = ButtonDefaults.buttonColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+        )
+    ) {
+        Icon(Icons.Default.Save, contentDescription = null)
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(stringResource(R.string.select_save_directory))
     }
 }
 
