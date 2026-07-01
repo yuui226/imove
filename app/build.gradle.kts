@@ -46,6 +46,14 @@ android {
     buildFeatures {
         compose = true
     }
+
+    // Name the built APK "imove.apk" instead of "app-release.apk".
+    applicationVariants.all {
+        outputs.all {
+            (this as com.android.build.gradle.internal.api.BaseVariantOutputImpl)
+                .outputFileName = "imove.apk"
+        }
+    }
 }
 
 dependencies {
