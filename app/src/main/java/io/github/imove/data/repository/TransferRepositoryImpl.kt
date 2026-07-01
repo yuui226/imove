@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import android.os.Handler
 import android.os.Looper
+import android.os.ParcelFileDescriptor
 import android.util.Log
 import android.widget.Toast
 import androidx.documentfile.provider.DocumentFile
@@ -26,8 +27,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import io.github.imove.R
-import java.io.BufferedInputStream
 import java.io.BufferedOutputStream
+import java.io.IOException
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -114,21 +115,45 @@ class TransferRepositoryImpl @Inject constructor(
             val destUri = destFile.uri
 
             val sourceUri = Uri.parse(item.file.path)
-            val src = context.contentResolver.openInputStream(sourceUri)
+            val pfd = context.contentResolver.openFileDescriptor(sourceUri, "r")
                 ?: throw Exception(context.getString(R.string.error_read_source, item.file.path))
-            val dst = context.contentResolver.openOutputStream(destUri)
-                ?: throw Exception(context.getString(R.string.error_write_dest, destUri.toString()))
-
-            BufferedInputStream(src, BUFFER_SIZE).use { input ->
+            // AutoCloseInputStream owns the pfd and closes it exactly once when the stream closes
+            // (also closes it if openOutputStream below throws).
+            ParcelFileDescriptor.AutoCloseInputStream(pfd).use { input ->
+                // statSize is reliable for removable mass-storage volumes; -1 if unknown.
+                val declaredSize = pfd.statSize
+                val dst = context.contentResolver.openOutputStream(destUri)
+                    ?: throw Exception(context.getString(R.string.error_write_dest, destUri.toString()))
                 BufferedOutputStream(dst, BUFFER_SIZE).use { output ->
                     val buf = ByteArray(BUFFER_SIZE)
-                    var read: Int
-                    while (input.read(buf).also { read = it } != -1) {
-                        output.write(buf, 0, read)
+                    if (declaredSize >= 0) {
+                        // Size-bounded copy: some SAF providers for removable volumes block on
+                        // the trailing read() instead of returning -1, which hangs the coroutine
+                        // (file is fully written but the item never leaves the queue). Stop once
+                        // we've copied exactly declaredSize bytes.
+                        var remaining = declaredSize
+                        while (remaining > 0) {
+                            val toRead = minOf(remaining, BUFFER_SIZE.toLong()).toInt()
+                            val read = input.read(buf, 0, toRead)
+                            if (read < 0) break
+                            output.write(buf, 0, read)
+                            remaining -= read
+                        }
+                        // Source ended before we got all expected bytes: fail loudly (and keep it
+                        // retryable) rather than silently marking a truncated file as transferred.
+                        if (remaining > 0) {
+                            throw IOException("Incomplete copy: $remaining/$declaredSize bytes missing")
+                        }
+                    } else {
+                        var read: Int
+                        while (input.read(buf).also { read = it } != -1) {
+                            output.write(buf, 0, read)
+                        }
                     }
                 }
             }
 
+            Log.d(TAG, "Copied $fileName")
             _transferredFileIds.update { it + item.file.id }
             _queue.update { list -> list.filter { it.id != item.id } }
         } catch (e: Exception) {
